@@ -1,0 +1,477 @@
+const { executeQuery } = require('../db');
+const { NodeSSH } = require('node-ssh'); // Импортируем node-ssh
+const multer = require('multer');
+const path = require('path');
+const uuid = require('uuid');
+const { encrypt } = require('../encode/encode');
+const crypto = require('crypto');
+const { getNextFreeInterfaceAndPort } = require('../utils/findFreeInterface');
+ 
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, '/home/rootuser/vpnmanager/cert/sstp/');
+    },
+    filename: (req, file, cb) => {
+        cb(null, file.originalname + path.extname(file.originalname));
+    },
+});
+
+const upload = multer({ storage: storage });  
+
+// Функция для создания PPTP-подключения
+const createVPNConnection = async (connectionData) => {
+    const ssh = new NodeSSH();
+    try {
+        const { newInterface, rdmPort, interfacePrefix } = await getNextFreeInterfaceAndPort(connectionData.protocol_type);
+        const fullInterface = `${interfacePrefix}${newInterface}`; // Полное имя для БД
+        console.log('Новый интерфейс (число):', newInterface, 'Полный интерфейс:', fullInterface, 'Свободный порт:', rdmPort);
+        // Подключаемся к серверу
+        await ssh.connect({
+            host: process.env.SSH_HOST,
+            username: process.env.SSH_USERNAME,
+            password: process.env.SSH_PASSWORD,
+        });
+
+        console.log('Connected to server.'); 
+
+        const sudoSuCommand = `echo '${process.env.SSH_PASSWORD}' | sudo -S su`;
+        const result = await ssh.execCommand(sudoSuCommand, {
+            execOptions: { pty: true }, // Включаем PTY
+            onStdout: (chunk) => {
+                console.log('STDOUT:', chunk.toString());
+            },
+            onStderr: (chunk) => {
+                console.error('STDERR:', chunk.toString());
+            },
+        }); 
+
+        if (result.stderr) {
+            console.error('Ошибка при выполнении sudo su:', result.stderr);
+        } else {
+            console.log('Команда sudo su выполнена успешно.');
+            console.log('Результат:', result.stdout);
+        }
+
+        console.log('sudo доступ предоставлен.');
+
+        // Вызываем скрипт на сервере
+        let scriptPath;  
+        let scriptCommand;
+
+        // Определяем путь к скрипту и формируем команду в зависимости от протокола
+        if (connectionData.protocol_type === 'pptp') {
+            scriptPath = '/home/rootuser/vpnmanager/vpncreators/create_pptp.sh';
+            scriptCommand = `
+                echo '${process.env.SSH_PASSWORD}' | sudo -S bash ${scriptPath} \
+                "${connectionData.connection_name}" \
+                "${connectionData.vpn_server_address}" \
+                "${connectionData.username}" \
+                "${connectionData.password}" \
+                "${newInterface}" \
+                "${connectionData.rdp_server_address}" \
+                "${rdmPort}"
+            `;
+        } else if (connectionData.protocol_type === 'l2tp') {
+            scriptPath = '/home/rootuser/vpnmanager/vpncreators/create_l2tp.sh';
+            scriptCommand = `
+                echo '${process.env.SSH_PASSWORD}' | sudo -S bash ${scriptPath} \
+                "${connectionData.connection_name}" \
+                "${connectionData.vpn_server_address}" \
+                "${connectionData.username}" \
+                "${connectionData.password}" \
+                "${newInterface}" \
+                "${connectionData.secret_key}" \
+                "${connectionData.rdp_server_address}" \
+                "${rdmPort}"
+            `;
+        } else if (connectionData.protocol_type === 'sstp') {
+            scriptPath = '/home/rootuser/vpnmanager/vpncreators/create_sstp.sh';
+            scriptCommand = `
+                echo '${process.env.SSH_PASSWORD}' | sudo -S bash ${scriptPath} \
+                "${connectionData.connection_name}" \
+                "${connectionData.vpn_server_address}" \
+                "${connectionData.username}" \
+                "${connectionData.password}" \
+                "${newInterface}" \
+                "${connectionData.rdp_server_address}" \
+                "${rdmPort}"
+            `;
+        } else if (connectionData.protocol_type === 'openvpn') {
+            scriptPath = '/home/rootuser/vpnmanager/vpncreators/create_openvpn.sh';
+            scriptCommand = `
+                echo '${process.env.SSH_PASSWORD}' | sudo -S bash ${scriptPath} \
+                "${connectionData.connection_name}" \
+                "${connectionData.vpn_server_address}" \
+                "${connectionData.username}" \
+                "${connectionData.password}" \
+                "${newInterface}" \
+                "${connectionData.rdp_server_address}" \
+                "${rdmPort}"
+            `;
+        } else if (connectionData.protocol_type === 'none') {
+            scriptPath = '';
+            scriptCommand = '';
+        } else {
+            throw new Error('Unsupported protocol type');
+        }
+
+        await ssh.execCommand(scriptCommand);
+        console.log(`${connectionData.protocol_type.toUpperCase()} connection created.`);
+        return { newInterface: fullInterface, rdmPort };
+    } catch (error) {
+        console.error('Error creating VPN connection:', error);
+        throw error;
+    } finally {
+        ssh.dispose(); // Закрываем соединение
+    }
+};
+
+const addRDPConnection = async (connectionData, rdmHost, rdmPort) => {
+    const UID = uuid.v4();
+    // const key = crypto.randomBytes(32); // 256 бит
+    // const nonce = crypto.randomBytes(24); // 192 бит
+
+    const key = crypto.randomBytes(32); // 256 бит
+    const iv = crypto.randomBytes(16); // 128 бит
+
+    const encryptedRdpPassword = encrypt(connectionData.rdp_password, key, iv);;
+    // const encryptedRdpPassword = encrypt(connectionData.rdp_password, key, nonce);
+    console.log(encryptedRdpPassword); 
+    
+    const createGroupQuery = `
+        INSERT INTO GroupInfo (
+            ID, Name, Description, CreationDate, CreatedByLoggedUserName,
+            CreatedByUserName, ModifiedDate, ModifiedUserName, ModifiedLoggedUserName, Data
+        )
+        VALUES (
+            @ID, @Name, @Description, @CreationDate, @CreatedByLoggedUserName,
+            @CreatedByUserName, @ModifiedDate, @ModifiedUserName, @ModifiedLoggedUserName, @Data
+        )
+    `;
+
+    const groupParams = {
+        ID: UID,
+        Name: connectionData.company_name,
+        Description: 'Description for group',
+        CreationDate: new Date().toISOString(),
+        CreatedByLoggedUserName: 'root',
+        CreatedByUserName: 'root',
+        ModifiedDate: new Date().toISOString(),
+        ModifiedUserName: 'root',
+        ModifiedLoggedUserName: 'root',
+        Data: `<?xml version="1.0"?>
+        <Group>
+        <Name>${connectionData.company_name}</Name>
+        <Description>Description for group</Description>
+        </Group>`
+    };
+
+    try {
+        await executeQuery(createGroupQuery, groupParams);
+        console.log('GroupInfo создана в БД.');
+    } catch (error) {
+        console.error('Ошибка создания GroupInfo:', error);
+        throw error;
+    }
+
+
+    const query = ` 
+        INSERT INTO Connections (
+            ID, Data, SecurityGroup, CustomerID, ConnectionType, ConnectionSubType,
+            GroupName, Name, UnsafePassword, MetaData, CreationDate, Description,
+            ModifiedDate, ModifiedUsername, ModifiedLoggedUserName, AttachmentCount,
+            AttachmentPrivateCount, Version, TodoOpenCount, Image, IsSubConnection,
+            IsTemplate, Groups, ConnectionMasterSubType, UrlLink, Status, StatusMessage,
+            SortPriority, Keywords, Expiration, RepositoryID, HandbookCount,
+            InventoryReportCount, PermissionCacheID, RecordingCount, ParentID
+        ) 
+        VALUES (
+            @ID, @Data, @SecurityGroup, @CustomerID, @ConnectionType, @ConnectionSubType,
+            @GroupName, @Name, @UnsafePassword, @MetaData, DEFAULT, @Description,
+            DEFAULT, @ModifiedUsername, @ModifiedLoggedUserName, @AttachmentCount,
+            @AttachmentPrivateCount, DEFAULT, @TodoOpenCount, CONVERT(VARBINARY(MAX), @Image), @IsSubConnection,
+            @IsTemplate, @Groups, @ConnectionMasterSubType, @UrlLink, @Status, @StatusMessage,
+            @SortPriority, @Keywords, @Expiration, @RepositoryID, @HandbookCount,
+            @InventoryReportCount, @PermissionCacheID, @RecordingCount, @ParentID
+        )  
+    `;
+
+    const params = { 
+        ID: UID,
+        Data: `<?xml version="1.0"?>
+<Connection>
+  <Url>${rdmHost}:${rdmPort}</Url> 
+  <Group>${connectionData.company_name}</Group>
+  <ID>${UID}</ID>
+  <Name>${connectionData.company_name} - ${connectionData.rdp_username}</Name>   
+  <RDP>
+    <SafePassword>${encryptedRdpPassword}</SafePassword>
+    <UserName>${connectionData.rdp_username}</UserName>
+    <Domain>${connectionData.rdp_domain}</Domain>
+  </RDP>
+</Connection>`,
+        SecurityGroup: UID,
+        CustomerID: UID,
+        ConnectionType: 1,
+        ConnectionSubType: '',
+        GroupName: connectionData.company_name,
+        Name: connectionData.connection_name,
+        UnsafePassword: encryptedRdpPassword,
+        MetaData: `<?xml version="1.0"?>
+<RDMOConnectionMetaData>
+  <ConnectionType>RDPConfigured</ConnectionType>
+  <Group>${connectionData.company_name}</Group>
+  <Host>${rdmHost}:${rdmPort}</Host>
+  <Name>${connectionData.connection_name}</Name>
+</RDMOConnectionMetaData>`,
+        CreationDate: new Date().toISOString(),
+        Description: '',
+        ModifiedDate: new Date().toISOString(),
+        ModifiedUsername: 'root',
+        ModifiedLoggedUserName: 'root',
+        AttachmentCount: 0,
+        AttachmentPrivateCount: 0,
+        Version: new Date().toISOString(),
+        TodoOpenCount: 0,
+        Image: null,
+        IsSubConnection: 0,
+        IsTemplate: 0,
+        Groups: '',
+        ConnectionMasterSubType: '',
+        UrlLink: '',
+        Status: '',
+        StatusMessage: '',
+        SortPriority: 0,
+        Keywords: '',
+        Expiration: null,
+        RepositoryID: '1855D483-F05F-40F9-9DC1-A50879F299DA',
+        HandbookCount: 0,
+        InventoryReportCount: 0,
+        PermissionCacheID: UID,
+        RecordingCount: 0,
+        ParentID: UID,
+    };
+    try {
+        await executeQuery(query, params);
+        console.log('Подключение добавлено в БД.');
+        console.log(encryptedRdpPassword);
+
+    } catch (error) {
+        console.error('Ошибка добавления: ', error);
+        throw error;
+    } 
+};
+
+// Добавление нового подключения
+exports.addConnection = async (req, res) => {
+    try {
+        const {
+            connection_name,
+            protocol_type,
+            vpn_server_address,
+            username,
+            password, 
+            secret_key,
+            certificate,
+            config_file,
+            company_name,
+            rdp_server_address,
+            rdp_domain,
+            rdp_username,
+            rdp_password,
+        } = req.body; 
+        
+
+        // Создаем VPN подключение на сервере
+        // await createVPNConnection({
+        //     connection_name,
+        //     protocol_type,
+        //     vpn_server_address,
+        //     username,
+        //     password,
+        //     connection_number, //сюда тоже нужно вставлять новый интерфейс
+        // });
+        const { newInterface, rdmPort } = await createVPNConnection({
+            connection_name,
+            protocol_type,
+            vpn_server_address,
+            username,
+            password,
+            secret_key: protocol_type === 'l2tp' ? secret_key : undefined,
+            rdp_server_address,
+          });
+        console.log('Подключение создано.');
+
+        // Вставка данных в таблицу vpn_connections
+        const query = `
+            INSERT INTO vpn_connections (
+                connection_name, protocol_type, vpn_server_address, username, password,
+                connection_number, secret_key, certificate, config_file, company_name,
+                rdp_server_address, rdp_domain, rdp_username, rdp_password, status, 
+                rdm_port 
+            )
+            OUTPUT INSERTED.*
+            VALUES (
+                @connection_name, @protocol_type, @vpn_server_address, @username, @password,
+                @connection_number, @secret_key, @certificate, @config_file, @company_name,
+                @rdp_server_address, @rdp_domain, @rdp_username, @rdp_password, @status,
+                @rdm_port 
+            )
+        `;
+
+        const params = {
+            connection_name,
+            protocol_type,
+            vpn_server_address,
+            username,
+            password,
+            connection_number: newInterface,
+            secret_key: protocol_type === 'l2tp' ? secret_key : null,
+            certificate,
+            config_file,
+            company_name,
+            rdp_server_address,
+            rdp_domain,
+            rdp_username,
+            rdp_password,
+            status: 'active', // Статус по умолчанию
+            rdm_port: rdmPort
+        };
+        
+
+        const vpnResult = await executeQuery(query, params);
+        console.log('Connection added to database.');
+
+        const rdpResult = await addRDPConnection({
+            connection_name,
+            company_name,
+            rdp_server_address,
+            rdp_domain,
+            rdp_username,
+            rdp_password, 
+        }, '10.10.5.16', rdmPort);
+        console.log('RDP подключение добавлено в БД.');
+
+        res.json({ vpnResult: vpnResult[0], rdpResult: 'RDP added', rdmPort }); 
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+}; 
+// Получение списка всех подключений
+exports.listConnections = async (req, res) => {
+    try {
+        const query = 'SELECT * FROM vpn_connections';
+        const connections = await executeQuery(query);
+        res.json(connections);
+    } catch (error) {
+        console.error('Error fetching connections:', error);
+        res.status(500).send('Server error');
+    }
+};
+
+exports.uploadCert = async (req, res) => {
+    try {
+        // Используем multer для загрузки файла локально
+        upload.single('certificate')(req, res, async (err) => {
+            if (err) {
+                return res.status(400).send('Error uploading file');
+            }
+
+            if (!req.file) {
+                return res.status(400).send('No file uploaded');
+            }
+
+            const localPath = req.file.path; // Путь к файлу на локальном сервере
+            const remotePath = `/home/rootuser/vpnmanager/cert/sstp/${req.file.filename}`; 
+
+            // Загружаем файл на удалённый сервер
+            await ssh.putFile(localPath, remotePath);
+            console.log('Certificate uploaded to remote server:', remotePath);
+
+            ssh.dispose();
+            res.json({ message: 'File uploaded successfully', filename: req.file.filename });
+        });
+    } catch (error) {
+        console.error('Error uploading certificate:', error);
+        ssh.dispose();
+        res.status(500).send('Server error');
+    }
+};
+
+// Обновление подключения
+exports.updateConnection = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const {
+            connection_name,
+            protocol_type,
+            vpn_server_address,
+            username,
+            password,
+            connection_number,
+        } = req.body;
+
+        const query = `
+            UPDATE vpn_connections
+            SET connection_name = @connection_name,
+                protocol_type = @protocol_type,
+                vpn_server_address = @vpn_server_address,
+                username = @username,
+                password = @password,
+                connection_number = @connection_number
+            OUTPUT INSERTED.*
+            WHERE id = @id
+        `;
+
+        const params = {
+            id: parseInt(id),
+            connection_name,
+            protocol_type,
+            vpn_server_address,
+            username,
+            password,
+            connection_number
+        };
+
+        const result = await executeQuery(query, params);
+        console.log('Connection updated successfully.');
+
+        if (result.length === 0) {
+            return res.status(404).send('Connection not found');
+        }
+
+        res.json(result[0]); // Вернуть обновленные данные
+    } catch (error) {
+        console.error('Error updating connection:', error);
+        res.status(500).send('Server error');
+    }
+};
+// Удаление подключения
+exports.deleteConnection = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const query = `
+            DELETE FROM vpn_connections
+            OUTPUT DELETED.*
+            WHERE id = @id
+        `;
+
+        const params = {
+            id: parseInt(id)
+        };
+
+        const result = await executeQuery(query, params);
+        console.log('Подключение удалено.');
+
+        if (result.length === 0) {
+            return res.status(404).send('Подключение не найдено');
+        }
+
+        res.json({ message: 'Подключение удалено', deleted: result[0] });
+    } catch (error) {
+        console.error('Ошибка удаления:', error);
+        res.status(500).send('Server error');
+    }
+};

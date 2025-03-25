@@ -1,0 +1,58 @@
+.connectionsContainer {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.connectionsTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.connectionsTable th,
+.connectionsTable td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.connectionsTable th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+.connectionsTable tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.connectionsTable tr:hover {
+    background-color: #f1f1f1;
+}
+
+.editButton,
+.deleteButton {
+    margin-right: 10px;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.editButton {
+    background-color: #007bff;
+    color: white;
+}
+
+.deleteButton {
+    background-color: #c52b3a;
+    color: white;
+}
+
+.editButton:hover {
+    background-color: #0056b3; 
+}
+
+.deleteButton:hover {
+    background-color: #9c0110; 
+}
