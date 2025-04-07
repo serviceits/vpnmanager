@@ -3,24 +3,26 @@ const router = express.Router();
 const vpnController = require('../controllers/vpnController'); 
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 
-// Настройка multer для загрузки сертификатов
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, '/home/rootuser/vpnmanager/cert/sstp/');
+        const uploadDir = path.join('C:', 'home', 'rootuser', 'vpnmanager', 'cert');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-        cb(null, file.originalname + path.extname(file.originalname));
+        // Используем оригинальное имя файла без изменений
+        cb(null, file.originalname);
     },
 });
-const upload = multer({ storage: storage });
-
+const upload = multer({ storage: storage }); 
 // Маршруты
-router.post('/add', upload.single('certificate'), vpnController.addConnection);
- 
-// router.post('/add', vpnController.addConnection); 
+router.post('/add', upload.single('certificate'), vpnController.addConnection); 
 router.get('/list', vpnController.listConnections);
 router.put('/update/:id', vpnController.updateConnection);
-router.delete('/delete/:id', vpnController.deleteConnection); 
+router.delete('/delete/:id', vpnController.deleteConnection);  
 
 module.exports = router;

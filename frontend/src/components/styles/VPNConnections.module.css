@@ -56,3 +56,16 @@
 .deleteButton:hover {
     background-color: #9c0110; 
 }
+
+.protocolFilters {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 15px;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+}

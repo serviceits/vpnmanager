@@ -48,7 +48,7 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
         });
 
         // Если есть сертификат, добавляем его в запрос
-        if (certificateFile && formData.protocol_type === 'sstp') {
+        if (certificateFile && formData.protocol_type === 'sstp' || certificateFile && formData.protocol_type === 'openvpn') {
             data.append('certificate', certificateFile);
         }
 
@@ -228,10 +228,10 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
                             <div className={styles.formRow}>
                                 <label>Файл конфигурации OpenVPN:</label>
                                 <input
-                                    type="text"
-                                    name="config_file"
-                                    value={formData.config_file}
-                                    onChange={handleChange}
+                                    type="file"
+                                    name="certificate"
+                                    value={formData.certificate}
+                                    onChange={handleCertificateChange}
                                 />
                             </div>
                             <div className={styles.formRow}>

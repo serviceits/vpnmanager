@@ -9,6 +9,7 @@ const VPNConnections = () => {
     const [error, setError] = useState(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedConnection, setSelectedConnection] = useState(null);
+    const [selectedProtocols, setSelectedProtocols] = useState([]); // Состояние для выбранных протоколов
 
     const fetchConnections = async () => {
         try {
@@ -20,10 +21,12 @@ const VPNConnections = () => {
             setLoading(false);
         }
     };
+
     const handleEdit = (conn) => {
         setSelectedConnection(conn);
         setIsEditModalOpen(true);
     };
+
     const handleDelete = async (id) => {
         try {
             if (!window.confirm('Вы точно хотите удалить подключение?')) return;
@@ -37,32 +40,64 @@ const VPNConnections = () => {
         }
     };
 
+    // Обработчик изменения состояния чекбокса
+    const handleProtocolChange = (protocol) => {
+        setSelectedProtocols((prev) =>
+            prev.includes(protocol)
+                ? prev.filter((p) => p !== protocol) // Убираем, если уже выбран
+                : [...prev, protocol] // Добавляем, если не выбран
+        );
+    };
+
     useEffect(() => {
         fetchConnections();
     }, []);
 
+    // Извлекаем уникальные протоколы из списка подключений
+    const uniqueProtocols = [...new Set(connections.map((conn) => conn.protocol_type))];
+
+    // Фильтруем подключения на основе выбранных протоколов
+    const filteredConnections =
+        selectedProtocols.length > 0
+            ? connections.filter((conn) => selectedProtocols.includes(conn.protocol_type))
+            : connections;
+
     if (loading) return <div>Загрузка...</div>;
-    if (error) return <div>{error}</div>; 
-    
+    if (error) return <div>{error}</div>;
 
     return (
         <div className={styles.connectionsContainer}>
             <h3>Подключения клиентов</h3>
+
+            {/* Чекбоксы для протоколов */}
+            <div className={styles.protocolFilters}>
+                {uniqueProtocols.map((protocol) => (
+                    <label key={protocol} className={styles.checkboxLabel}>
+                        <input
+                            type="checkbox"
+                            checked={selectedProtocols.includes(protocol)}
+                            onChange={() => handleProtocolChange(protocol)}
+                        />
+                        {protocol}
+                    </label>
+                ))}
+            </div>
+
             <table className={styles.connectionsTable}>
                 <thead>
                     <tr>
                         <th>Название</th>
                         <th>Протокол</th>
-                        <th>Адрес VPN сервера</th> 
+                        <th>Адрес VPN сервера</th>
                         <th>Действия</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {connections.map((conn) => (
+                    {filteredConnections.map((conn) => (
                         <tr key={conn.id}>
                             <td>{conn.company_name}</td>
                             <td>{conn.protocol_type}</td>
-                            <td>{conn.vpn_server_address}</td> 
+                            <td>{conn.vpn_server_address}</td>
                             <td>
                                 <button
                                     className={styles.editButton}

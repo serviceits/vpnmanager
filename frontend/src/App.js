@@ -5,6 +5,7 @@ import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import PrivateRoute from './components/PrivateRoute';
 import { AuthProvider } from './context/AuthContext'; 
+import UploadTestPage from './components/UploadTestPage';
 
 function App() {
     return (
@@ -21,6 +22,7 @@ function App() {
                             // </PrivateRoute>
                         }
                     />
+                    <Route path="/upload-test" element={<UploadTestPage />} />
                 </Routes> 
             </Router>
         </AuthProvider>
