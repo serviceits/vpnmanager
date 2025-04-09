@@ -1,3 +1,4 @@
+const { executeQuery } = require('../db');
 const { connectAndExecuteCommands, refresh } = require('./sshConnect'); 
 require('dotenv').config();
 
@@ -9,7 +10,17 @@ exports.getInterfaces = async (req, res) => {
             process.env.SSH_USERNAME,
             process.env.SSH_PASSWORD
         );
-        res.json({ interfaces });
+        const query = 'SELECT connection_number, company_name FROM vpn_connections WHERE connection_number IS NOT NULL';
+        const connections = await executeQuery(query);
+        const interfacesWithNames = interfaces.map((iface) => {
+            const connection = connections.find((conn) => conn.connection_number === iface);
+            return {
+                interface: iface,
+                company_name: connection ? connection.company_name : null,
+            };
+        });
+
+        res.json({ interfaces: interfacesWithNames });
     } catch (error) {
         console.error('Ошибка при получении интерфейсов:', error);
         res.status(500).json({ error: 'Failed to fetch interfaces' }); 

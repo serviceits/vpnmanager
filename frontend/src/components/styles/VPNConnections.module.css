@@ -69,3 +69,41 @@
     gap: 5px;
     font-size: 14px;
 }
+
+.filtersContainer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.protocolFilters {
+    display: flex;
+    gap: 15px;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+}
+
+.searchContainer {
+    flex: 1;
+    max-width: 300px;
+    margin-left: 20px;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    outline: none;
+}
+
+.searchInput:focus {
+    border-color: #007bff;
+}

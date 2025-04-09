@@ -9,7 +9,8 @@ const VPNConnections = () => {
     const [error, setError] = useState(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedConnection, setSelectedConnection] = useState(null);
-    const [selectedProtocols, setSelectedProtocols] = useState([]); // Состояние для выбранных протоколов
+    const [selectedProtocols, setSelectedProtocols] = useState([]); // Выбранные протоколы
+    const [searchQuery, setSearchQuery] = useState(''); // Строка поиска
 
     const fetchConnections = async () => {
         try {
@@ -44,9 +45,14 @@ const VPNConnections = () => {
     const handleProtocolChange = (protocol) => {
         setSelectedProtocols((prev) =>
             prev.includes(protocol)
-                ? prev.filter((p) => p !== protocol) // Убираем, если уже выбран
-                : [...prev, protocol] // Добавляем, если не выбран
+                ? prev.filter((p) => p !== protocol)
+                : [...prev, protocol]
         );
+    };
+
+    // Обработчик изменения строки поиска
+    const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value);
     };
 
     useEffect(() => {
@@ -56,11 +62,16 @@ const VPNConnections = () => {
     // Извлекаем уникальные протоколы из списка подключений
     const uniqueProtocols = [...new Set(connections.map((conn) => conn.protocol_type))];
 
-    // Фильтруем подключения на основе выбранных протоколов
-    const filteredConnections =
-        selectedProtocols.length > 0
-            ? connections.filter((conn) => selectedProtocols.includes(conn.protocol_type))
-            : connections;
+    // Фильтруем подключения на основе протоколов и поискового запроса
+    const filteredConnections = connections
+        .filter((conn) =>
+            selectedProtocols.length > 0
+                ? selectedProtocols.includes(conn.protocol_type)
+                : true
+        )
+        .filter((conn) =>
+            conn.company_name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
 
     if (loading) return <div>Загрузка...</div>;
     if (error) return <div>{error}</div>;
@@ -69,18 +80,29 @@ const VPNConnections = () => {
         <div className={styles.connectionsContainer}>
             <h3>Подключения клиентов</h3>
 
-            {/* Чекбоксы для протоколов */}
-            <div className={styles.protocolFilters}>
-                {uniqueProtocols.map((protocol) => (
-                    <label key={protocol} className={styles.checkboxLabel}>
-                        <input
-                            type="checkbox"
-                            checked={selectedProtocols.includes(protocol)}
-                            onChange={() => handleProtocolChange(protocol)}
-                        />
-                        {protocol}
-                    </label>
-                ))}
+            {/* Фильтры и поиск */}
+            <div className={styles.filtersContainer}>
+                <div className={styles.protocolFilters}>
+                    {uniqueProtocols.map((protocol) => (
+                        <label key={protocol} className={styles.checkboxLabel}>
+                            <input
+                                type="checkbox"
+                                checked={selectedProtocols.includes(protocol)}
+                                onChange={() => handleProtocolChange(protocol)}
+                            />
+                            {protocol}
+                        </label>
+                    ))}
+                </div>
+                <div className={styles.searchContainer}>
+                    <input
+                        type="text"
+                        placeholder="Поиск по названию..."
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                        className={styles.searchInput}
+                    />
+                </div>
             </div>
 
             <table className={styles.connectionsTable}>

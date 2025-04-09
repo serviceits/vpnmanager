@@ -17,7 +17,8 @@ const SSHStatus = () => {
             setError('Ошибка получения интерфейсов');
             setLoading(false);
         }
-    };
+    }; 
+    
 
     // Функция для обновления подключения
     const handleRefresh = async () => {
@@ -36,7 +37,7 @@ const SSHStatus = () => {
     }, []);
 
     if (loading) {
-        return <div>Загрузки...</div>;
+        return <div>Загрузка...</div>;
     }
 
     if (error) {
@@ -53,8 +54,12 @@ const SSHStatus = () => {
             </header>
             <div className={styles.interfacesGrid}>
                 {interfaces.map((iface, index) => (
-                    <div key={index} className={styles.interfaceItem}>
-                        {iface}
+                    <div
+                        key={index}
+                        className={styles.interfaceItem}
+                        title={iface.company_name || 'Нет имени'} // Показываем connection_name при наведении
+                    >
+                        {iface.interface}
                     </div>
                 ))}
             </div>

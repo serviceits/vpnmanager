@@ -6,9 +6,9 @@ const uuid = require('uuid');
 const { encrypt } = require('../encode/encode');
 const crypto = require('crypto');
 const { getNextFreeInterfaceAndPort } = require('../utils/findFreeInterface');
- 
+
 const fs = require('fs');
- 
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const protocolType = req.body.protocol_type;
@@ -37,7 +37,7 @@ const storage = multer.diskStorage({
     },
 });
 
-const upload = multer({ storage: storage });  
+const upload = multer({ storage: storage });
 
 // Функция для создания PPTP-подключения
 const createVPNConnection = async (connectionData) => {
@@ -53,7 +53,7 @@ const createVPNConnection = async (connectionData) => {
             password: process.env.SSH_PASSWORD,
         });
 
-        console.log('Connected to server.'); 
+        console.log('Connected to server.');
 
         const sudoSuCommand = `echo '${process.env.SSH_PASSWORD}' | sudo -S su`;
         const result = await ssh.execCommand(sudoSuCommand, {
@@ -64,7 +64,7 @@ const createVPNConnection = async (connectionData) => {
             onStderr: (chunk) => {
                 console.error('STDERR:', chunk.toString());
             },
-        }); 
+        });
 
         if (result.stderr) {
             console.error('Ошибка при выполнении sudo su:', result.stderr);
@@ -76,7 +76,7 @@ const createVPNConnection = async (connectionData) => {
         console.log('sudo доступ предоставлен.');
 
         // Вызываем скрипт на сервере
-        let scriptPath;  
+        let scriptPath;
         let scriptCommand;
 
         // Определяем путь к скрипту и формируем команду в зависимости от протокола
@@ -140,9 +140,9 @@ const createVPNConnection = async (connectionData) => {
                 "${rdmPort}"
                 "${`/home/rootuser/vpnmanager/cert/openvpn/${connectionData.connection_name}.conf`}"`);
             console.log('------------------------------------');
-            
-            
-            
+
+
+
         } else if (connectionData.protocol_type === 'none') {
             scriptPath = '';
             scriptCommand = '';
@@ -162,7 +162,7 @@ const createVPNConnection = async (connectionData) => {
 };
 
 const addRDPConnection = async (connectionData, rdmHost, rdmPort) => {
-    const UID = uuid.v4(); 
+    const UID = uuid.v4();
     // const nonce = crypto.randomBytes(24); // 192 бит
 
     const key = crypto.randomBytes(32); // 256 бит
@@ -170,8 +170,8 @@ const addRDPConnection = async (connectionData, rdmHost, rdmPort) => {
 
     const encryptedRdpPassword = encrypt(connectionData.rdp_password, key, iv);;
     // const encryptedRdpPassword = encrypt(connectionData.rdp_password, key, nonce);
-    console.log(encryptedRdpPassword); 
-    
+    console.log(encryptedRdpPassword);
+
     const createGroupQuery = `
         INSERT INTO GroupInfo (
             ID, Name, Description, CreationDate, CreatedByLoggedUserName,
@@ -229,12 +229,14 @@ const addRDPConnection = async (connectionData, rdmHost, rdmPort) => {
             @InventoryReportCount, @PermissionCacheID, @RecordingCount, @ParentID
         )  
     `;
-
-    const params = { 
+    const url = connectionData.protocol_type !== 'none'
+        ? `${rdmHost}:${rdmPort}`
+        : connectionData.rdp_server_address;
+    const params = {
         ID: UID,
         Data: `<?xml version="1.0"?>
 <Connection>
-  <Url>${rdmHost}:${rdmPort}</Url> 
+  <Url>${url}</Url> 
   <Group>${connectionData.company_name}</Group>
   <ID>${UID}</ID>
   <Name>${connectionData.company_name} - ${connectionData.rdp_username}</Name>   
@@ -255,7 +257,7 @@ const addRDPConnection = async (connectionData, rdmHost, rdmPort) => {
 <RDMOConnectionMetaData>
   <ConnectionType>RDPConfigured</ConnectionType>
   <Group>${connectionData.company_name}</Group>
-  <Host>${rdmHost}:${rdmPort}</Host>
+  <Host>${url}</Host>
   <Name>${connectionData.connection_name}</Name>
 </RDMOConnectionMetaData>`,
         CreationDate: new Date().toISOString(),
@@ -293,7 +295,7 @@ const addRDPConnection = async (connectionData, rdmHost, rdmPort) => {
     } catch (error) {
         console.error('Ошибка добавления: ', error);
         throw error;
-    } 
+    }
 };
 
 // Добавление нового подключения
@@ -319,7 +321,7 @@ exports.addConnection = async (req, res) => {
         } = req.body;
 
         let certificatePath = null;
-        if (protocol_type === 'sstp' && req.file ) {
+        if (protocol_type === 'sstp' && req.file) {
             const localCertPath = req.file.path; // Путь, куда Multer сохранил файл локально
             certificatePath = `/home/rootuser/vpnmanager/cert/${req.file.originalname}`; // Путь на виртуалке
 
@@ -338,7 +340,7 @@ exports.addConnection = async (req, res) => {
                 password: process.env.SSH_PASSWORD,
             });
             console.log('SSH-соединение установлено');
-            
+
             // Создаём директорию на виртуалке, если её нет
             const remoteDir = '/home/rootuser/vpnmanager/cert/sstp';
             await ssh.execCommand(`mkdir -p ${remoteDir}`);
@@ -371,7 +373,7 @@ exports.addConnection = async (req, res) => {
                 password: process.env.SSH_PASSWORD,
             });
             console.log('SSH-соединение установлено');
-            
+
             // Создаём директорию на виртуалке, если её нет
             // const remoteDir = '/etc/openvpn/';
             // await ssh.execCommand(`sudo mkdir -p ${remoteDir}`);
@@ -387,26 +389,32 @@ exports.addConnection = async (req, res) => {
 
             ssh.dispose();
         }
+        let newInterface, rdmPort;
+        if (protocol_type !== 'none') {
+            console.log('Запуск createVPNConnection с данными:', {
+                connection_name,
+                protocol_type,
+                vpn_server_address,
+                username,
+                password,
+                secret_key,
+                rdp_server_address,
+            });
+            ({ newInterface, rdmPort } = await createVPNConnection({
+                connection_name,
+                protocol_type,
+                vpn_server_address,
+                username,
+                password,
+                secret_key: protocol_type === 'l2tp' ? secret_key : undefined,
+                rdp_server_address,
+            }));
+            console.log('Подключение создано:', { newInterface, rdmPort });
+        } else {
+            // Для 'none' генерируем только rdmPort
 
-
-        console.log('Запуск createVPNConnection с данными:', {
-            connection_name,
-            protocol_type,
-            vpn_server_address,
-            username,
-            password,
-            secret_key,
-            rdp_server_address,
-        });
-        const { newInterface, rdmPort } = await createVPNConnection({
-            connection_name,
-            protocol_type,
-            vpn_server_address,
-            username,
-            password,
-            secret_key: protocol_type === 'l2tp' ? secret_key : undefined,
-            rdp_server_address,
-        });
+            console.log('Протокол none, подключение создано');
+        }
         console.log('Подключение создано:', { newInterface, rdmPort });
 
         const query = `
@@ -428,20 +436,20 @@ exports.addConnection = async (req, res) => {
         const params = {
             connection_name,
             protocol_type,
-            vpn_server_address,
+            vpn_server_address: protocol_type !== 'none' ? vpn_server_address : '',
             username,
             password,
-            connection_number: newInterface,
+            connection_number: protocol_type !== 'none' ? newInterface : 0,
             secret_key: protocol_type === 'l2tp' ? secret_key : null,
-            certificate: protocol_type === 'sstp' ? certificatePath : null,
-            config_file: protocol_type === 'openvpn' ? certificatePath : null,
+            certificate: protocol_type === 'sstp' ? certificatePath : (protocol_type === 'openvpn' ? certificatePath : null),
+            config_file,
             company_name,
             rdp_server_address,
             rdp_domain,
             rdp_username,
             rdp_password,
             status: 'active',
-            rdm_port: rdmPort
+            rdm_port: protocol_type !== 'none' ? rdmPort : 0
         };
 
         console.log('Выполнение SQL-запроса с параметрами:', params);
@@ -466,7 +474,8 @@ exports.addConnection = async (req, res) => {
             rdp_domain,
             rdp_username,
             rdp_password,
-        }, rdmHost, rdmPort);
+            protocol_type,
+        }, protocol_type !== 'none' ? rdmHost : rdp_server_address, rdmPort);
         console.log('RDP подключение добавлено в БД:', rdpResult);
 
         res.json({ vpnResult: vpnResult[0], rdpResult: 'RDP added', rdmPort });
