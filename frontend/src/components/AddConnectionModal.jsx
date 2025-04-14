@@ -39,7 +39,7 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log(formData); 
+        console.log('Данные формы перед отправкой:', formData);
 
         const data = new FormData();
         // Добавляем все поля формы в FormData
@@ -48,13 +48,17 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
         });
 
         // Если есть сертификат, добавляем его в запрос
-        if (certificateFile && formData.protocol_type === 'sstp' || certificateFile && formData.protocol_type === 'openvpn') {
+        if (certificateFile && (formData.protocol_type === 'sstp' || formData.protocol_type === 'openvpn')) {
             data.append('certificate', certificateFile);
         }
+        for (let pair of data.entries()) {
+            console.log(`${pair[0]}: ${pair[1]}`);
+        }
+
 
         try {
             // Отправляем всё в одном запросе на /api/vpn/add
-            const response = await axios.post('http://localhost:5000/api/vpn/add', data, {
+            const response = await axios.post('http://10.10.5.148:5000/api/vpn/add', data, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -84,10 +88,16 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
         }
     };
 
+    const handleOverlayClick = (e) => {
+        if (e.target.className.includes(styles.overlay)) {
+            onClose();
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
-        <div className={styles.overlay}>
+        <div className={styles.overlay} onClick={handleOverlayClick}>
             <div className={styles.modal}>
                 <h2>Новое подключение</h2>
                 <form onSubmit={handleSubmit} className={styles.form}>

@@ -121,24 +121,18 @@ const createVPNConnection = async (connectionData) => {
             scriptPath = '/home/rootuser/vpnmanager/vpncreators/create_openvpn.sh';
             scriptCommand = `
                 echo '${process.env.SSH_PASSWORD}' | sudo -S bash ${scriptPath} \
-                "${connectionData.connection_name}" \ 
+                "${connectionData.connection_name}" \
                 "${connectionData.username}" \
                 "${connectionData.password}" \
                 "${newInterface}" \
                 "${connectionData.rdp_server_address}" \
                 "${rdmPort}" \
-                "${`/home/rootuser/vpnmanager/cert/openvpn/${connectionData.connection_name}.conf`}"
+                "${`/home/rootuser/vpnmanager/cert/openvpn/${connectionData.connection_name}.conf`}" \
+                2>&1 | tee /tmp/openvpn.log
             `;
             console.log('------------------------------------');
             console.log('openvpn script');
-            console.log(`
-                "${connectionData.connection_name}"
-                "${connectionData.username}"
-                "${connectionData.password}"
-                "${newInterface}"
-                "${connectionData.rdp_server_address}"
-                "${rdmPort}"
-                "${`/home/rootuser/vpnmanager/cert/openvpn/${connectionData.connection_name}.conf`}"`);
+            console.log(scriptCommand);
             console.log('------------------------------------');
 
 
@@ -320,41 +314,67 @@ exports.addConnection = async (req, res) => {
             rdp_password,
         } = req.body;
 
+
+        console.log('Извлечённые данные из req.body:', {
+            connection_name,
+            protocol_type,
+            vpn_server_address,
+            username,
+            password,
+            secret_key,
+            certificate,
+            config_file,
+            company_name,
+            rdp_server_address,
+            rdp_domain,
+            rdp_username,
+            rdp_password,
+        });
+
         let certificatePath = null;
-        if (protocol_type === 'sstp' && req.file) {
-            const localCertPath = req.file.path; // Путь, куда Multer сохранил файл локально
-            certificatePath = `/home/rootuser/vpnmanager/cert/${req.file.originalname}`; // Путь на виртуалке
-
-            console.log('Локальный путь сертификата:', localCertPath);
-            console.log('Удалённый путь сертификата:', certificatePath);
-
-            // Проверяем, существует ли файл локально
-            if (!fs.existsSync(localCertPath)) {
-                throw new Error(`Локальный файл сертификата не найден: ${localCertPath}`);
+        if (protocol_type === 'sstp') {
+            if (req.file) {
+                const localCertPath = req.file.path;
+                const fileExt = path.extname(req.file.originalname).toLowerCase();
+        
+                if (fileExt !== '.crt') {
+                    throw new Error('Для SSTP требуется сертификат в формате .crt');
+                }
+        
+                const renamedCertPath = `${req.file.destination}/${connection_name}.crt`;
+                console.log('Локальный путь сертификата:', localCertPath);
+                console.log('Переименованный локальный путь:', renamedCertPath);
+        
+                fs.renameSync(localCertPath, renamedCertPath);
+                console.log(`Сертификат переименован из ${localCertPath} в ${renamedCertPath}`);
+        
+                certificatePath = `/home/rootuser/vpnmanager/cert/sstp/${connection_name}.crt`;
+                console.log('Удалённый путь сертификата:', certificatePath);
+        
+                if (!fs.existsSync(renamedCertPath)) {
+                    throw new Error(`Переименованный файл сертификата не найден: ${renamedCertPath}`);
+                }
+        
+                await ssh.connect({
+                    host: process.env.SSH_HOST,
+                    username: process.env.SSH_USERNAME,
+                    password: process.env.SSH_PASSWORD,
+                });
+                console.log('SSH-соединение установлено');
+        
+                const remoteDir = '/home/rootuser/vpnmanager/cert/sstp';
+                await ssh.execCommand(`mkdir -p ${remoteDir}`);
+                console.log(`Директория ${remoteDir} проверена/создана`);
+                await ssh.execCommand(`chmod 777 ${remoteDir}`);
+                console.log(`Права на ${remoteDir} установлены`);
+                await ssh.putFile(renamedCertPath, certificatePath);
+                console.log('Сертификат загружен на виртуалку:', certificatePath);
+        
+                ssh.dispose();
+            } else {
+                console.log('Сертификат для SSTP не предоставлен, настройка без сертификата');
+                certificatePath = null; // Указываем, что сертификата нет
             }
-
-            // Подключаемся к виртуалке
-            await ssh.connect({
-                host: process.env.SSH_HOST,
-                username: process.env.SSH_USERNAME,
-                password: process.env.SSH_PASSWORD,
-            });
-            console.log('SSH-соединение установлено');
-
-            // Создаём директорию на виртуалке, если её нет
-            const remoteDir = '/home/rootuser/vpnmanager/cert/sstp';
-            await ssh.execCommand(`mkdir -p ${remoteDir}`);
-            console.log(`Директория ${remoteDir} проверена/создана`);
-
-            // Устанавливаем права
-            await ssh.execCommand(`chmod 777 ${remoteDir}`);
-            console.log(`Права на ${remoteDir} установлены`);
-
-            // Загружаем сертификат
-            await ssh.putFile(localCertPath, certificatePath);
-            console.log('Сертификат загружен на виртуалку:', certificatePath);
-
-            ssh.dispose();
         } else if (protocol_type === 'openvpn' && req.file) {
             const localCertPath = req.file.path; // Путь, куда Multer сохранил файл локально
             certificatePath = `/home/rootuser/vpnmanager/cert/openvpn/${connection_name}.conf`; // Путь на виртуалке
@@ -372,16 +392,7 @@ exports.addConnection = async (req, res) => {
                 username: process.env.SSH_USERNAME,
                 password: process.env.SSH_PASSWORD,
             });
-            console.log('SSH-соединение установлено');
-
-            // Создаём директорию на виртуалке, если её нет
-            // const remoteDir = '/etc/openvpn/';
-            // await ssh.execCommand(`sudo mkdir -p ${remoteDir}`);
-            // console.log(`Директория ${remoteDir} проверена/создана`);
-
-            // // Устанавливаем права
-            // await ssh.execCommand(`sudo chmod 777 ${remoteDir}`);
-            // console.log(`Права на ${remoteDir} установлены`);
+            console.log('SSH-соединение установлено'); 
 
             // Загружаем сертификат
             await ssh.putFile(localCertPath, certificatePath);
@@ -406,13 +417,11 @@ exports.addConnection = async (req, res) => {
                 vpn_server_address,
                 username,
                 password,
-                secret_key: protocol_type === 'l2tp' ? secret_key : undefined,
+                secret_key: protocol_type === 'l2tp' ? secret_key : '',
                 rdp_server_address,
             }));
             console.log('Подключение создано:', { newInterface, rdmPort });
-        } else {
-            // Для 'none' генерируем только rdmPort
-
+        } else {  
             console.log('Протокол none, подключение создано');
         }
         console.log('Подключение создано:', { newInterface, rdmPort });

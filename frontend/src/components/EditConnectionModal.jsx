@@ -3,10 +3,11 @@ import axios from 'axios';
 import styles from './styles/EditConnectionModal.module.css';
 
 const EditConnectionModal = ({ isOpen, onClose, connection }) => {
-
-    
+    const [showPassword, setShowPassword] = useState(false);
+    const [showRdpPassword, setShowRdpPassword] = useState(false);
+    const [showL2tpPassword, setShowL2tpPassword] = useState(false);
     const [certificateFile, setCertificateFile] = useState(null);
-    
+
     const [formData, setFormData] = useState({
         connection_name: '',
         protocol_type: '',
@@ -24,14 +25,12 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
         rdp_password: '',
     });
 
-
-
     // Загрузка данных подключения при открытии модального окна
     useEffect(() => {
         if (isOpen && connection) {
             setFormData({
                 connection_name: connection.connection_name || '',
-                protocol_type: connection.protocol_type || '',
+                protocol_type: connection.protocol_type || 'pptp',
                 vpn_server_address: connection.vpn_server_address || '',
                 username: connection.username || '',
                 password: connection.password || '',
@@ -70,7 +69,7 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
 
             try {
                 const response = await axios.post(
-                    'http://localhost:5000/api/vpn/upload-certificate',
+                    'http://10.10.5.148:5000/api/vpn/upload-certificate',
                     formDataCert,
                     {
                         headers: {
@@ -93,10 +92,27 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
 
         try {
             await axios.put(
-                `http://localhost:5000/api/vpn/update/${connection.id}`,
-                formData
+                `http://10.10.5.148:5000/api/vpn/update/${connection.id}`,
+                updatedFormData
             );
             alert('Подключение обновлено');
+            setFormData({
+                connection_name: '',
+                protocol_type: 'pptp',
+                vpn_server_address: '',
+                username: '',
+                password: '',
+                connection_number: '',
+                secret_key: '',
+                certificate: '',
+                config_file: '',
+                company_name: '',
+                rdp_server_address: '',
+                rdp_domain: '',
+                rdp_username: '',
+                rdp_password: '',
+            });
+            setCertificateFile(null);
             onClose();
         } catch (error) {
             console.error('Ошибка обновления:', error);
@@ -104,10 +120,17 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
         }
     };
 
+    
+    const handleOverlayClick = (e) => {
+        if (e.target.className.includes(styles.overlay)) {
+            onClose();
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
-        <div className={styles.overlay}>
+        <div className={styles.overlay} onClick={handleOverlayClick}>
             <div className={styles.modal}>
                 <h2>Редактирование подключения</h2>
                 <form onSubmit={handleSubmit} className={styles.form}>
@@ -136,71 +159,203 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
                             <option value="none">Без VPN</option>
                         </select>
                     </div>
-                    <div className={styles.formRow}>
-                        <label>VPN адрес сервера:</label>
-                        <input
-                            type="text"
-                            name="vpn_server_address"
-                            value={formData.vpn_server_address}
-                            onChange={handleChange}
-                            required={formData.protocol_type !== 'none'}
-                        />
-                    </div>
-                    <div className={styles.formRow}>
-                        <label>Имя пользователя:</label>
-                        <input
-                            type="text"
-                            name="username"
-                            value={formData.username}
-                            onChange={handleChange}
-                            required={formData.protocol_type === 'pptp'}
-                        />
-                    </div>
-                    <div className={styles.formRow}>
-                        <label>Пароль:</label>
-                        <input
-                            type="password"
-                            name="password"
-                            value={formData.password}
-                            onChange={handleChange}
-                            required={formData.protocol_type === 'pptp'}
-                        />
-                    </div>
-                    <div className={styles.formRow}>
-                        <label>Номер соединения:</label>
-                        <input
-                            type="text"
-                            name="connection_number"
-                            value={formData.connection_number}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <div className={styles.formRow}>
-                        <label>L2TP ключ:</label>
-                        <input
-                            type="text"
-                            name="secret_key"
-                            value={formData.secret_key}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <div className={styles.formRow}>
-                        <label>Сертификат SSTP:</label>
-                        <input
-                            type="file"
-                            name="certificate" 
-                            onChange={handleCertificateChange}
-                        />
-                    </div>
-                    <div className={styles.formRow}>
-                        <label>Файл конфигурации OpenVPN:</label>
-                        <input
-                            type="text"
-                            name="config_file"
-                            value={formData.config_file}
-                            onChange={handleChange}
-                        />
-                    </div>
+
+                    {formData.protocol_type === 'pptp' && (
+                        <>
+                            <div className={styles.formRow}>
+                                <label>VPN адрес сервера:</label>
+                                <input
+                                    type="text"
+                                    name="vpn_server_address"
+                                    value={formData.vpn_server_address}
+                                    onChange={handleChange}
+                                    required={formData.protocol_type !== 'none'}
+                                />
+                            </div>
+                            <div className={styles.formRow}>
+                                <label>Имя пользователя:</label>
+                                <input
+                                    type="text"
+                                    name="username"
+                                    value={formData.username}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </div>
+                            <div className={styles.formRow}>
+                                <label>Пароль:</label>
+                                <div className={styles.passwordInputContainer}>
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        name="password"
+                                        value={formData.password}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className={styles.showPasswordButton}
+                                    >
+                                        {showPassword ? 'Скрыть' : 'Показать'}
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {formData.protocol_type === 'l2tp' && (
+                        <>
+                            <div className={styles.formRow}>
+                                <label>VPN адрес сервера:</label>
+                                <input
+                                    type="text"
+                                    name="vpn_server_address"
+                                    value={formData.vpn_server_address}
+                                    onChange={handleChange}
+                                    required={formData.protocol_type !== 'none'}
+                                />
+                            </div>
+                            <div className={styles.formRow}>
+                                <label>Имя пользователя:</label>
+                                <input
+                                    type="text"
+                                    name="username"
+                                    value={formData.username}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </div>
+                            <div className={styles.formRow}>
+                                <label>Пароль:</label>
+                                <div className={styles.passwordInputContainer}>
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        name="password"
+                                        value={formData.password}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className={styles.showPasswordButton}
+                                    >
+                                        {showPassword ? 'Скрыть' : 'Показать'}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className={styles.formRow}>
+                                <label>L2TP ключ:</label>
+                                <div className={styles.passwordInputContainer}>
+                                    <input
+                                        type={showL2tpPassword ? 'text' : 'password'}
+                                        name="secret_key"
+                                        value={formData.secret_key}
+                                        onChange={handleChange}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowL2tpPassword(!showL2tpPassword)}
+                                        className={styles.showPasswordButton}
+                                    >
+                                        {showL2tpPassword ? 'Скрыть' : 'Показать'}
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {formData.protocol_type === 'openvpn' && (
+                        <>
+                            <div className={styles.formRow}>
+                                <label>Файл конфигурации OpenVPN:</label>
+                                <input
+                                    type="file"
+                                    name="certificate"
+                                    onChange={handleCertificateChange}
+                                />
+                            </div>
+                            <div className={styles.formRow}>
+                                <label>Имя пользователя:</label>
+                                <input
+                                    type="text"
+                                    name="username"
+                                    value={formData.username}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className={styles.formRow}>
+                                <label>Пароль:</label>
+                                <div className={styles.passwordInputContainer}>
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        name="password"
+                                        value={formData.password}
+                                        onChange={handleChange}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className={styles.showPasswordButton}
+                                    >
+                                        {showPassword ? 'Скрыть' : 'Показать'}
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {formData.protocol_type === 'sstp' && (
+                        <>
+                            <div className={styles.formRow}>
+                                <label>VPN адрес сервера:</label>
+                                <input
+                                    type="text"
+                                    name="vpn_server_address"
+                                    value={formData.vpn_server_address}
+                                    onChange={handleChange}
+                                    required={formData.protocol_type !== 'none'}
+                                />
+                            </div>
+                            <div className={styles.formRow}>
+                                <label>Имя пользователя:</label>
+                                <input
+                                    type="text"
+                                    name="username"
+                                    value={formData.username}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className={styles.formRow}>
+                                <label>Пароль:</label>
+                                <div className={styles.passwordInputContainer}>
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        name="password"
+                                        value={formData.password}
+                                        onChange={handleChange}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className={styles.showPasswordButton}
+                                    >
+                                        {showPassword ? 'Скрыть' : 'Показать'}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className={styles.formRow}>
+                                <label>Сертификат SSTP:</label>
+                                <input
+                                    type="file"
+                                    name="certificate"
+                                    onChange={handleCertificateChange}
+                                />
+                            </div>
+                        </>
+                    )}
+
                     <div className={styles.formRow}>
                         <label>Название компании:</label>
                         <input
@@ -242,13 +397,22 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
                     </div>
                     <div className={styles.formRow}>
                         <label>RDP пароль:</label>
-                        <input
-                            type="password"
-                            name="rdp_password"
-                            value={formData.rdp_password}
-                            onChange={handleChange}
-                            required
-                        />
+                        <div className={styles.passwordInputContainer}>
+                            <input
+                                type={showRdpPassword ? 'text' : 'password'}
+                                name="rdp_password"
+                                value={formData.rdp_password}
+                                onChange={handleChange}
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowRdpPassword(!showRdpPassword)}
+                                className={styles.showPasswordButton}
+                            >
+                                {showRdpPassword ? 'Скрыть' : 'Показать'}
+                            </button>
+                        </div>
                     </div>
                     <div className={styles.formActions}>
                         <button type="submit" className={styles.button}>

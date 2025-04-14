@@ -30,16 +30,21 @@ async function getNextFreeInterfaceAndPort(protocolType) {
       nextInterfaceNumber = num + 1;
     }
 
-    // Обработка портов
+    // Обработка портов: учитываем только порты >= 10043
     const usedPorts = result
       .map(row => row.rdm_port)
-      .filter(port => port !== null && port !== undefined)
+      .filter(port => port !== null && port !== undefined && port >= 10043) // Игнорируем порты < 10043
       .sort((a, b) => a - b);
 
-    let nextPort = 10050; // Начальный порт
+    let nextPort = 10043; // Начальный порт
     for (const port of usedPorts) {
-      if (port > nextPort) break;
-      nextPort = port + 1;
+      if (port > nextPort) break; // Если есть разрыв, используем его
+      nextPort = port + 1; // Иначе берем следующий порт
+    }
+
+    // Убедимся, что nextPort не меньше 10043 (хотя это уже гарантировано фильтром)
+    if (nextPort < 10043) {
+      nextPort = 10043;
     }
 
     return { newInterface: nextInterfaceNumber, rdmPort: nextPort, interfacePrefix };
