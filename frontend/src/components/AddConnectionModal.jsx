@@ -1,29 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import styles from './styles/AddConnectionModal.module.css';
 
 const AddConnectionModal = ({ isOpen, onClose }) => {
-
     const [showPassword, setShowPassword] = useState(false);
     const [showRdpPassword, setShowRdpPassword] = useState(false);
     const [showL2tpPassword, setShowL2tpPassword] = useState(false);
     const [certificateFile, setCertificateFile] = useState(null);
-
     const [formData, setFormData] = useState({
         connection_name: '',
-        protocol_type: 'pptp', // По умолчанию PPTP
+        protocol_type: 'pptp',
         vpn_server_address: '',
         username: '',
-        password: '', 
+        password: '',
         secret_key: '',
-        certificate: '',
-        config_file: '',
         company_name: '',
         rdp_server_address: '',
         rdp_domain: '',
         rdp_username: '',
         rdp_password: '',
     });
+
+    // Блокировка прокрутки при открытии модалки
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+
+        // Очистка при размонтировании
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -39,25 +49,17 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Данные формы перед отправкой:', formData);
 
         const data = new FormData();
-        // Добавляем все поля формы в FormData
         Object.keys(formData).forEach((key) => {
             data.append(key, formData[key]);
         });
 
-        // Если есть сертификат, добавляем его в запрос
         if (certificateFile && (formData.protocol_type === 'sstp' || formData.protocol_type === 'openvpn')) {
             data.append('certificate', certificateFile);
         }
-        for (let pair of data.entries()) {
-            console.log(`${pair[0]}: ${pair[1]}`);
-        }
-
 
         try {
-            // Отправляем всё в одном запросе на /api/vpn/add
             const response = await axios.post('http://10.10.5.148:5000/api/vpn/add', data, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -72,8 +74,6 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
                 username: '',
                 password: '',
                 secret_key: '',
-                certificate: '',
-                config_file: '',
                 company_name: '',
                 rdp_server_address: '',
                 rdp_domain: '',
@@ -88,6 +88,7 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
         }
     };
 
+    // Закрытие модалки при клике вне окна
     const handleOverlayClick = (e) => {
         if (e.target.className.includes(styles.overlay)) {
             onClose();
@@ -99,7 +100,7 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
     return (
         <div className={styles.overlay} onClick={handleOverlayClick}>
             <div className={styles.modal}>
-                <h2>Новое подключение</h2>
+                <h2>Добавление подключения</h2>
                 <form onSubmit={handleSubmit} className={styles.form}>
                     <div className={styles.formRow}>
                         <label>Название подключения: (Eng)</label>
@@ -125,7 +126,7 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
                             <option value="sstp">SSTP</option>
                             <option value="none">Без VPN</option>
                         </select>
-                    </div> 
+                    </div>
 
                     {formData.protocol_type === 'pptp' && (
                         <>
@@ -136,7 +137,7 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
                                     name="vpn_server_address"
                                     value={formData.vpn_server_address}
                                     onChange={handleChange}
-                                    required={formData.protocol_type !== 'none'}
+                                    required
                                 />
                             </div>
                             <div className={styles.formRow}>
@@ -180,7 +181,7 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
                                     name="vpn_server_address"
                                     value={formData.vpn_server_address}
                                     onChange={handleChange}
-                                    required={formData.protocol_type !== 'none'}
+                                    required
                                 />
                             </div>
                             <div className={styles.formRow}>
@@ -240,7 +241,6 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
                                 <input
                                     type="file"
                                     name="certificate"
-                                    value={formData.certificate}
                                     onChange={handleCertificateChange}
                                 />
                             </div>
@@ -250,7 +250,7 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
                                     type="text"
                                     name="username"
                                     value={formData.username}
-                                    onChange={handleChange} 
+                                    onChange={handleChange}
                                 />
                             </div>
                             <div className={styles.formRow}>
@@ -260,7 +260,7 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
                                         type={showPassword ? 'text' : 'password'}
                                         name="password"
                                         value={formData.password}
-                                        onChange={handleChange} 
+                                        onChange={handleChange}
                                     />
                                     <button
                                         type="button"
@@ -283,7 +283,7 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
                                     name="vpn_server_address"
                                     value={formData.vpn_server_address}
                                     onChange={handleChange}
-                                    required={formData.protocol_type !== 'none'}
+                                    required
                                 />
                             </div>
                             <div className={styles.formRow}>
@@ -292,7 +292,7 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
                                     type="text"
                                     name="username"
                                     value={formData.username}
-                                    onChange={handleChange} 
+                                    onChange={handleChange}
                                 />
                             </div>
                             <div className={styles.formRow}>
@@ -302,7 +302,7 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
                                         type={showPassword ? 'text' : 'password'}
                                         name="password"
                                         value={formData.password}
-                                        onChange={handleChange} 
+                                        onChange={handleChange}
                                     />
                                     <button
                                         type="button"
@@ -318,7 +318,6 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
                                 <input
                                     type="file"
                                     name="certificate"
-                                    value={formData.certificate}
                                     onChange={handleCertificateChange}
                                 />
                             </div>

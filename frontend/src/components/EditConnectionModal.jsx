@@ -10,14 +10,12 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
 
     const [formData, setFormData] = useState({
         connection_name: '',
-        protocol_type: '',
+        protocol_type: 'pptp',
         vpn_server_address: '',
         username: '',
         password: '',
-        connection_number: '',
         secret_key: '',
         certificate: '',
-        config_file: '',
         company_name: '',
         rdp_server_address: '',
         rdp_domain: '',
@@ -34,10 +32,8 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
                 vpn_server_address: connection.vpn_server_address || '',
                 username: connection.username || '',
                 password: connection.password || '',
-                connection_number: connection.connection_number || '',
                 secret_key: connection.secret_key || '',
                 certificate: connection.certificate || '',
-                config_file: connection.config_file || '',
                 company_name: connection.company_name || '',
                 rdp_server_address: connection.rdp_server_address || '',
                 rdp_domain: connection.rdp_domain || '',
@@ -46,6 +42,20 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
             });
         }
     }, [isOpen, connection]);
+
+    // Блокировка прокрутки при открытии модалки
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+
+        // Очистка при размонтировании
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -102,10 +112,8 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
                 vpn_server_address: '',
                 username: '',
                 password: '',
-                connection_number: '',
                 secret_key: '',
                 certificate: '',
-                config_file: '',
                 company_name: '',
                 rdp_server_address: '',
                 rdp_domain: '',
@@ -120,7 +128,7 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
         }
     };
 
-    
+    // Закрытие модалки при клике вне окна
     const handleOverlayClick = (e) => {
         if (e.target.className.includes(styles.overlay)) {
             onClose();
@@ -169,7 +177,7 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
                                     name="vpn_server_address"
                                     value={formData.vpn_server_address}
                                     onChange={handleChange}
-                                    required={formData.protocol_type !== 'none'}
+                                    required
                                 />
                             </div>
                             <div className={styles.formRow}>
@@ -213,7 +221,7 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
                                     name="vpn_server_address"
                                     value={formData.vpn_server_address}
                                     onChange={handleChange}
-                                    required={formData.protocol_type !== 'none'}
+                                    required
                                 />
                             </div>
                             <div className={styles.formRow}>
@@ -315,7 +323,7 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
                                     name="vpn_server_address"
                                     value={formData.vpn_server_address}
                                     onChange={handleChange}
-                                    required={formData.protocol_type !== 'none'}
+                                    required
                                 />
                             </div>
                             <div className={styles.formRow}>
