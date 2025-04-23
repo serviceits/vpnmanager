@@ -451,7 +451,7 @@ exports.addConnection = async (req, res) => {
             connection_number: protocol_type !== 'none' ? newInterface : 0,
             secret_key: protocol_type === 'l2tp' ? secret_key : null,
             certificate: protocol_type === 'sstp' ? certificatePath : (protocol_type === 'openvpn' ? certificatePath : null),
-            config_file,
+            config_file: '',
             company_name,
             rdp_server_address,
             rdp_domain,
