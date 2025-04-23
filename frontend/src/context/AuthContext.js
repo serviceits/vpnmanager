@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
             const token = localStorage.getItem('token');
             if (token) {
                 try {
-                    const response = await axios.get('http://10.10.5.148:5000/api/auth/me', {
+                    const response = await axios.get('http://10.10.5.16:5000/api/auth/me', {
                         headers: { Authorization: `Bearer ${token}` },
                     });
                     setUser(response.data.user); 

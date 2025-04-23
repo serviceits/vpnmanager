@@ -9,7 +9,7 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://10.10.5.148:5000/api/auth/register', { username, password });
+            await axios.post('http://10.10.5.16:5000/api/auth/register', { username, password });
             alert('Registration successful');
             window.location.href = '/login';
         } catch (err) {

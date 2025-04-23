@@ -79,7 +79,7 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
 
             try {
                 const response = await axios.post(
-                    'http://10.10.5.148:5000/api/vpn/upload-certificate',
+                    'http://10.10.5.16:5000/api/vpn/upload-certificate',
                     formDataCert,
                     {
                         headers: {
@@ -102,7 +102,7 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
 
         try {
             await axios.put(
-                `http://10.10.5.148:5000/api/vpn/update/${connection.id}`,
+                `http://10.10.5.16:5000/api/vpn/update/${connection.id}`,
                 updatedFormData
             );
             alert('Подключение обновлено');

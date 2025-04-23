@@ -60,7 +60,7 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
         }
 
         try {
-            const response = await axios.post('http://10.10.5.148:5000/api/vpn/add', data, {
+            const response = await axios.post('http://10.10.5.16:5000/api/vpn/add', data, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -86,19 +86,12 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
             console.error('Ошибка добавления:', error);
             alert('Ошибка при добавлении: ' + error.message);
         }
-    };
-
-    // Закрытие модалки при клике вне окна
-    const handleOverlayClick = (e) => {
-        if (e.target.className.includes(styles.overlay)) {
-            onClose();
-        }
-    };
+    }; 
 
     if (!isOpen) return null;
 
     return (
-        <div className={styles.overlay} onClick={handleOverlayClick}>
+        <div className={styles.overlay} >
             <div className={styles.modal}>
                 <h2>Добавление подключения</h2>
                 <form onSubmit={handleSubmit} className={styles.form}>

@@ -14,7 +14,7 @@ const VPNConnections = () => {
 
     const fetchConnections = async () => {
         try {
-            const response = await axios.get('http://10.10.5.148:5000/api/vpn/list');
+            const response = await axios.get('http://10.10.5.16:5000/api/vpn/list');
             setConnections(response.data);
             setLoading(false);
         } catch (err) {
@@ -32,7 +32,7 @@ const VPNConnections = () => {
         try {
             if (!window.confirm('Вы точно хотите удалить подключение?')) return;
 
-            await axios.delete(`http://10.10.5.148:5000/api/vpn/delete/${id}`);
+            await axios.delete(`http://10.10.5.16:5000/api/vpn/delete/${id}`);
             alert('Успешно удалено');
             fetchConnections(); // Обновляем список после удаления
         } catch (error) {

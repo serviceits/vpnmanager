@@ -9,7 +9,7 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post('http://10.10.5.148:5000/api/auth/login', { username, password });
+            const response = await axios.post('http:/6:5000/api/auth/login', { username, password });
             localStorage.setItem('token', response.data.token);
             window.location.href = '/';
         } catch (err) {
