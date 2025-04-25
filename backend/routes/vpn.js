@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const vpnController = require('../controllers/vpnController'); 
+const vpnController = require('../controllers/vpnController');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { authenticate, checkPermission } = require('../middleware/auth');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -14,15 +15,14 @@ const storage = multer.diskStorage({
         cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-        // Используем оригинальное имя файла без изменений
         cb(null, file.originalname);
     },
 });
-const upload = multer({ storage: storage }); 
-// Маршруты
-router.post('/add', upload.single('certificate'), vpnController.addConnection); 
-router.get('/list', vpnController.listConnections);
-router.put('/update/:id', vpnController.updateConnection);
-router.delete('/delete/:id', vpnController.deleteConnection);  
+const upload = multer({ storage: storage });
+
+router.post('/add', authenticate, checkPermission('can_create_connections'), upload.single('certificate'), vpnController.addConnection);
+router.get('/list', authenticate, vpnController.listConnections);
+router.put('/update/:id', authenticate, checkPermission('can_edit_connections'), vpnController.updateConnection);
+router.delete('/delete/:id', authenticate, checkPermission('can_delete_connections'), vpnController.deleteConnection);
 
 module.exports = router;

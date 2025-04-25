@@ -54,7 +54,7 @@ const executeQuery = async (query, params = {}) => {
             }
         });
 
-        const result = await request.query(query);
+        const result = await request.query(query);  
         return result.recordset;
     } catch (error) {
         console.error('Database error:', error);

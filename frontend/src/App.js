@@ -3,29 +3,27 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
+import UserManagement from './components/UserManagement';
 import PrivateRoute from './components/PrivateRoute';
-import { AuthProvider } from './context/AuthContext'; 
+import { AuthProvider } from './context/AuthContext';
 import UploadTestPage from './components/UploadTestPage';
 
 function App() {
     return (
-        <AuthProvider>
-            <Router> 
-                <Routes >
+        <Router>
+            <AuthProvider>
+                <Routes>
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
+                    <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
                     <Route
-                        path="/"
-                        element={
-                            // <PrivateRoute>
-                                <Dashboard />
-                            // </PrivateRoute>
-                        }
+                        path="/user-management"
+                        element={<PrivateRoute><UserManagement /></PrivateRoute>}
                     />
                     <Route path="/upload-test" element={<UploadTestPage />} />
-                </Routes> 
-            </Router>
-        </AuthProvider>
+                </Routes>
+            </AuthProvider>
+        </Router>
     );
 }
 

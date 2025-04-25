@@ -49,12 +49,19 @@
     color: white;
 }
 
-.editButton:hover {
-    background-color: #0056b3; 
+.editButton:hover:not(:disabled) {
+    background-color: #0056b3;
 }
 
-.deleteButton:hover {
-    background-color: #9c0110; 
+.deleteButton:hover:not(:disabled) {
+    background-color: #9c0110;
+}
+
+.editButton:disabled,
+.deleteButton:disabled {
+    background-color: #cccccc;
+    color: #666666;
+    cursor: not-allowed;
 }
 
 .protocolFilters {

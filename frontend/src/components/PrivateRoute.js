@@ -1,22 +1,24 @@
 import React, { useContext } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
-const PrivateRoute = () => {
-    const { user } = useContext(AuthContext);
-    console.log('User in PrivateRoute:', user);
-    if (user === null) {
-        // Если пользователь не авторизован, перенаправляем на страницу входа
+const PrivateRoute = ({ children }) => {
+    const { user, loading } = useContext(AuthContext);
+
+    if (loading) {
+        return <div>Загрузка...</div>;
+    }
+
+    if (!user) {
         return <Navigate to="/login" replace />;
     }
 
-    if (user === undefined) {
-        // Если состояние еще не определено (например, загружается), показываем индикатор загрузки
-        return <div>Loading...</div>;
+    // Для user-management проверяем роль admin
+    if (window.location.pathname === '/user-management' && user.userrole !== 'admin') {
+        return <Navigate to="/" replace />;
     }
 
-    // Если пользователь авторизован, рендерим защищенный маршрут
-    return <Outlet />;
+    return children;
 };
 
 export default PrivateRoute;
