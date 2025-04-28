@@ -31,7 +31,7 @@ const AddVPNConnection = () => {
         e.preventDefault();
 
         try {
-            const response = await axios.post('http://10.10.5.16:5000/api/vpn/add', formData);
+            const response = await axios.post(`${process.env.REACT_APP_SERVER}/api/vpn/add`, formData);
             alert('Connection added successfully');
             console.log(response.data);
         } catch (error) {

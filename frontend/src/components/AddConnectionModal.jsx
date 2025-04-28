@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import styles from './styles/AddConnectionModal.module.css';
+import styles from './styles/AddConnectionModal.module.css'; 
 
 const AddConnectionModal = ({ isOpen, onClose }) => {
     const [showPassword, setShowPassword] = useState(false);
@@ -60,7 +60,7 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
         }
 
         try {
-            const response = await axios.post('http://10.10.5.16:5000/api/vpn/add', data, {
+            const response = await axios.post(`http://${process.env.REACT_APP_SERVER}:5000/api/vpn/add`, data, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },

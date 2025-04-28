@@ -6,10 +6,7 @@ const ssh = new NodeSSH();
 
 const host = process.env.SSH_HOST
 const username = process.env.SSH_USERNAME
-const password = process.env.SSH_PASSWORD
-// const host = '10.10.5.16'
-// const username = 'rootuser'
-// const password = 'Integr@t0r'
+const password = process.env.SSH_PASSWORD 
 
 const connectAndExecuteCommands = async (host, username, password) => {
     try {

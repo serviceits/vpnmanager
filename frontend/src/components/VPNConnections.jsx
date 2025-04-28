@@ -17,7 +17,7 @@ const VPNConnections = () => {
     useEffect(() => {
         const fetchConnections = async () => {
             try {
-                const response = await axios.get('http://10.10.5.16:5000/api/vpn/list', {
+                const response = await axios.get(`${process.env.REACT_APP_SERVER}/api/vpn/list`, {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
                 });
                 setConnections(response.data);
@@ -39,7 +39,7 @@ const VPNConnections = () => {
     const handleDelete = async (id) => {
         if (window.confirm('Вы уверены, что хотите удалить это подключение?')) {
             try {
-                await axios.delete(`http://10.10.5.16:5000/api/vpn/delete/${id}`, {
+                await axios.delete(`${process.env.REACT_APP_SERVER}/api/vpn/delete/${id}`, {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
                 });
                 alert('Успешно удалено');

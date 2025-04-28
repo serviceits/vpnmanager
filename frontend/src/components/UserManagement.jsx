@@ -27,7 +27,7 @@ const UserManagement = () => {
 
     const fetchUsers = async () => {
         try {
-            const response = await axios.get('http://10.10.5.16:5000/api/users', {
+            const response = await axios.get(`${process.env.REACT_APP_SERVER}/api/users`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
             });
             console.log('Fetched users:', response.data);
@@ -59,7 +59,7 @@ const UserManagement = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://10.10.5.16:5000/api/auth/register', formData, {
+            await axios.post(`${process.env.REACT_APP_SERVER}/api/auth/register`, formData, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
             });
             alert('Пользователь зарегистрирован');
@@ -84,7 +84,7 @@ const UserManagement = () => {
     const handleDelete = async (userId) => {
         if (window.confirm('Вы уверены, что хотите удалить пользователя?')) {
             try {
-                const response = await axios.delete(`http://10.10.5.16:5000/api/auth/users/${userId}`, {
+                const response = await axios.delete(`${process.env.REACT_APP_SERVER}/api/auth/users/${userId}`, {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
                 });
                 alert(response.data.message);
@@ -115,7 +115,7 @@ const UserManagement = () => {
     const handleUpdate = async (e) => {
         e.preventDefault();
         try {
-            await axios.put(`http://10.10.5.16:5000/api/auth/users/${editUser.id}`, formData, {
+            await axios.put(`${process.env.REACT_APP_SERVER}/api/auth/users/${editUser.id}`, formData, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
             });
             alert('Пользователь обновлён');

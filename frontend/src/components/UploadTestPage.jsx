@@ -21,7 +21,7 @@ const UploadTestPage = () => {
         formData.append('file', file);
 
         try {
-            const response = await axios.post('http://10.10.5.16:5000/api/vpn/upload-test', formData, {
+            const response = await axios.post(`${process.env.REACT_APP_SERVER}/api/vpn/upload-test`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },

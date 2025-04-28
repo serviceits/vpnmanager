@@ -12,7 +12,7 @@ const AuthLogic = ({ setUser, setLoading, setAuthActions }) => {
         console.log('Token in AuthLogic:', token);
         if (token) {
             axios
-                .get('http://10.10.5.16:5000/api/auth/me', {
+                .get(`${process.env.REACT_APP_SERVER}/api/auth/me`, {
                     headers: { Authorization: `Bearer ${token}` },
                 })
                 .then((response) => {
@@ -40,7 +40,7 @@ const AuthLogic = ({ setUser, setLoading, setAuthActions }) => {
 
     const login = async (username, password) => {
         try {
-            const response = await axios.post('http://10.10.5.16:5000/api/auth/login', {
+            const response = await axios.post(`${process.env.REACT_APP_SERVER}/api/auth/login`, {
                 username,
                 password,
             });

@@ -10,7 +10,7 @@ const SSHStatus = () => {
     // Функция для получения интерфейсов
     const fetchInterfaces = async () => {
         try {
-            const response = await axios.get('http://10.10.5.16:5000/api/ssh/interfaces');
+            const response = await axios.get(`${process.env.REACT_APP_SERVER}/api/ssh/interfaces`);
             setInterfaces(response.data.interfaces);
             setLoading(false);
         } catch (err) {
@@ -23,7 +23,7 @@ const SSHStatus = () => {
     // Функция для обновления подключения
     const handleRefresh = async () => {
         try {
-            await axios.post('http://10.10.5.16:5000/api/ssh/refresh');
+            await axios.post(`${process.env.REACT_APP_SERVER}/api/ssh/refresh`);
             alert('Подключения успешно обновлены');
             fetchInterfaces(); // После обновления заново загружаем интерфейсы
         } catch (err) {
