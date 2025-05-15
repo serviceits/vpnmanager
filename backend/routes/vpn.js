@@ -22,7 +22,7 @@ const upload = multer({ storage: storage });
 
 router.post('/add', authenticate, checkPermission('can_create_connections'), upload.single('certificate'), vpnController.addConnection);
 router.get('/list', authenticate, vpnController.listConnections);
-router.put('/update/:id', authenticate, checkPermission('can_edit_connections'), vpnController.updateConnection);
+router.put('/update/:id', authenticate, checkPermission('can_edit_connections'), upload.single('certificate'), vpnController.updateConnection);
 router.delete('/delete/:id', authenticate, checkPermission('can_delete_connections'), vpnController.deleteConnection);
 
 module.exports = router;

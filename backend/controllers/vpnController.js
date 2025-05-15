@@ -39,6 +39,8 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+const UID = uuid.v4();
+
 // Функция для создания PPTP-подключения
 const createVPNConnection = async (connectionData) => {
     const ssh = new NodeSSH();
@@ -156,7 +158,6 @@ const createVPNConnection = async (connectionData) => {
 };
 
 const addRDPConnection = async (connectionData, rdmHost, rdmPort) => {
-    const UID = uuid.v4();
     // const nonce = crypto.randomBytes(24); // 192 бит
 
     const key = crypto.randomBytes(32); // 256 бит
@@ -331,37 +332,37 @@ exports.addConnection = async (req, res) => {
             rdp_password,
         });
 
-        let certificatePath = null;
-        if (protocol_type === 'sstp') {
-            if (req.file) {
+        let certificatePath = certificate || null;
+        if (req.file) {
+            if (protocol_type === 'sstp') {
                 const localCertPath = req.file.path;
                 const fileExt = path.extname(req.file.originalname).toLowerCase();
-        
+
                 if (fileExt !== '.crt') {
                     throw new Error('Для SSTP требуется сертификат в формате .crt');
                 }
-        
+
                 const renamedCertPath = `${req.file.destination}/${connection_name}.crt`;
                 console.log('Локальный путь сертификата:', localCertPath);
                 console.log('Переименованный локальный путь:', renamedCertPath);
-        
+
                 fs.renameSync(localCertPath, renamedCertPath);
                 console.log(`Сертификат переименован из ${localCertPath} в ${renamedCertPath}`);
-        
+
                 certificatePath = `/home/rootuser/vpnmanager/cert/sstp/${connection_name}.crt`;
                 console.log('Удалённый путь сертификата:', certificatePath);
-        
+
                 if (!fs.existsSync(renamedCertPath)) {
                     throw new Error(`Переименованный файл сертификата не найден: ${renamedCertPath}`);
                 }
-        
+
                 await ssh.connect({
                     host: process.env.SSH_HOST,
                     username: process.env.SSH_USERNAME,
                     password: process.env.SSH_PASSWORD,
                 });
                 console.log('SSH-соединение установлено');
-        
+
                 const remoteDir = '/home/rootuser/vpnmanager/cert/sstp';
                 await ssh.execCommand(`mkdir -p ${remoteDir}`);
                 console.log(`Директория ${remoteDir} проверена/создана`);
@@ -369,36 +370,30 @@ exports.addConnection = async (req, res) => {
                 console.log(`Права на ${remoteDir} установлены`);
                 await ssh.putFile(renamedCertPath, certificatePath);
                 console.log('Сертификат загружен на виртуалку:', certificatePath);
-        
+
                 ssh.dispose();
-            } else {
-                console.log('Сертификат для SSTP не предоставлен, настройка без сертификата');
-                certificatePath = null; // Указываем, что сертификата нет
+            } else if (protocol_type === 'openvpn') {
+                const localCertPath = req.file.path;
+                certificatePath = `/home/rootuser/vpnmanager/cert/openvpn/${connection_name}.conf`;
+                console.log('Локальный путь сертификата:', localCertPath);
+                console.log('Удалённый путь сертификата:', certificatePath);
+
+                if (!fs.existsSync(localCertPath)) {
+                    throw new Error(`Локальный файл сертификата не найден: ${localCertPath}`);
+                }
+
+                await ssh.connect({
+                    host: process.env.SSH_HOST,
+                    username: process.env.SSH_USERNAME,
+                    password: process.env.SSH_PASSWORD,
+                });
+                console.log('SSH-соединение установлено');
+
+                await ssh.putFile(localCertPath, certificatePath);
+                console.log('Сертификат загружен на виртуалку:', certificatePath);
+
+                ssh.dispose();
             }
-        } else if (protocol_type === 'openvpn' && req.file) {
-            const localCertPath = req.file.path; // Путь, куда Multer сохранил файл локально
-            certificatePath = `/home/rootuser/vpnmanager/cert/openvpn/${connection_name}.conf`; // Путь на виртуалке
-            console.log('Локальный путь сертификата:', localCertPath);
-            console.log('Удалённый путь сертификата:', certificatePath);
-
-            // Проверяем, существует ли файл локально
-            if (!fs.existsSync(localCertPath)) {
-                throw new Error(`Локальный файл сертификата не найден: ${localCertPath}`);
-            }
-
-            // Подключаемся к виртуалке
-            await ssh.connect({
-                host: process.env.SSH_HOST,
-                username: process.env.SSH_USERNAME,
-                password: process.env.SSH_PASSWORD,
-            });
-            console.log('SSH-соединение установлено'); 
-
-            // Загружаем сертификат
-            await ssh.putFile(localCertPath, certificatePath);
-            console.log('Сертификат загружен на виртуалку:', certificatePath);
-
-            ssh.dispose();
         }
         let newInterface, rdmPort;
         if (protocol_type !== 'none') {
@@ -421,7 +416,7 @@ exports.addConnection = async (req, res) => {
                 rdp_server_address,
             }));
             console.log('Подключение создано:', { newInterface, rdmPort });
-        } else {  
+        } else {
             console.log('Протокол none, подключение создано');
         }
         console.log('Подключение создано:', { newInterface, rdmPort });
@@ -431,14 +426,14 @@ exports.addConnection = async (req, res) => {
                 connection_name, protocol_type, vpn_server_address, username, password,
                 connection_number, secret_key, certificate, config_file, company_name,
                 rdp_server_address, rdp_domain, rdp_username, rdp_password, status, 
-                rdm_port 
+                rdm_port, connection_uid
             )
             OUTPUT INSERTED.*
             VALUES (
                 @connection_name, @protocol_type, @vpn_server_address, @username, @password,
                 @connection_number, @secret_key, @certificate, @config_file, @company_name,
                 @rdp_server_address, @rdp_domain, @rdp_username, @rdp_password, @status,
-                @rdm_port 
+                @rdm_port, @connection_uid
             )
         `;
 
@@ -458,7 +453,8 @@ exports.addConnection = async (req, res) => {
             rdp_username,
             rdp_password,
             status: 'active',
-            rdm_port: protocol_type !== 'none' ? rdmPort : 0
+            rdm_port: protocol_type !== 'none' ? rdmPort : 0,
+            connection_uid: UID
         };
 
         console.log('Выполнение SQL-запроса с параметрами:', params);
@@ -548,6 +544,7 @@ exports.uploadCert = async (req, res) => {
 
 // Обновление подключения
 exports.updateConnection = async (req, res) => {
+    const ssh = new NodeSSH();
     try {
         const { id } = req.params;
         const {
@@ -556,69 +553,292 @@ exports.updateConnection = async (req, res) => {
             vpn_server_address,
             username,
             password,
-            connection_number,
+            secret_key,
+            certificate,
+            company_name,
+            rdp_server_address,
+            rdp_domain,
+            rdp_username,
+            rdp_password
         } = req.body;
 
-        const query = `
+        console.log('req.body:', req.body);
+        console.log('req.file:', req.file);
+        console.log('Extracted data:', {
+            connection_name,
+            protocol_type,
+            vpn_server_address,
+            username,
+            password,
+            secret_key,
+            certificate,
+            company_name,
+            rdp_server_address,
+            rdp_domain,
+            rdp_username,
+            rdp_password
+        });
+
+        // Валидация обязательных полей
+        if (!connection_name) {
+            return res.status(400).json({ error: 'connection_name is required' });
+        }
+        if (!company_name) {
+            return res.status(400).json({ error: 'company_name is required' });
+        }
+
+        console.log('req.user:', req.user);
+        if (!req.user || !req.user.permissions || !req.user.permissions.can_edit_connections) {
+            return res.status(403).json({ error: 'Нет прав на редактирование подключений' });
+        }
+
+        // Обработка сертификата, если он загружен
+        let certificatePath = certificate || null;
+        if (req.file) {
+            if (protocol_type === 'sstp') {
+                const localCertPath = req.file.path;
+                const fileExt = path.extname(req.file.originalname).toLowerCase();
+
+                if (fileExt !== '.crt') {
+                    throw new Error('Для SSTP требуется сертификат в формате .crt');
+                }
+
+                const renamedCertPath = `${req.file.destination}/${connection_name}.crt`;
+                console.log('Локальный путь сертификата:', localCertPath);
+                console.log('Переименованный локальный путь:', renamedCertPath);
+
+                fs.renameSync(localCertPath, renamedCertPath);
+                console.log(`Сертификат переименован из ${localCertPath} в ${renamedCertPath}`);
+
+                certificatePath = `/home/rootuser/vpnmanager/cert/sstp/${connection_name}.crt`;
+                console.log('Удалённый путь сертификата:', certificatePath);
+
+                if (!fs.existsSync(renamedCertPath)) {
+                    throw new Error(`Переименованный файл сертификата не найден: ${renamedCertPath}`);
+                }
+
+                await ssh.connect({
+                    host: process.env.SSH_HOST,
+                    username: process.env.SSH_USERNAME,
+                    password: process.env.SSH_PASSWORD,
+                });
+                console.log('SSH-соединение установлено');
+
+                const remoteDir = '/home/rootuser/vpnmanager/cert/sstp';
+                await ssh.execCommand(`mkdir -p ${remoteDir}`);
+                console.log(`Директория ${remoteDir} проверена/создана`);
+                await ssh.execCommand(`chmod 777 ${remoteDir}`);
+                console.log(`Права на ${remoteDir} установлены`);
+                await ssh.putFile(renamedCertPath, certificatePath);
+                console.log('Сертификат загружен на виртуалку:', certificatePath);
+
+                ssh.dispose();
+            } else if (protocol_type === 'openvpn') {
+                const localCertPath = req.file.path;
+                certificatePath = `/home/rootuser/vpnmanager/cert/openvpn/${connection_name}.conf`;
+                console.log('Локальный путь сертификата:', localCertPath);
+                console.log('Удалённый путь сертификата:', certificatePath);
+
+                if (!fs.existsSync(localCertPath)) {
+                    throw new Error(`Локальный файл сертификата не найден: ${localCertPath}`);
+                }
+
+                await ssh.connect({
+                    host: process.env.SSH_HOST,
+                    username: process.env.SSH_USERNAME,
+                    password: process.env.SSH_PASSWORD,
+                });
+                console.log('SSH-соединение установлено');
+
+                await ssh.putFile(localCertPath, certificatePath);
+                console.log('Сертификат загружен на виртуалку:', certificatePath);
+
+                ssh.dispose();
+            }
+        }
+
+        // Получаем connection_uid и rdm_port перед обновлением
+        const selectQuery = `
+            SELECT connection_uid, rdm_port
+            FROM vpn_connections
+            WHERE id = @id
+        `;
+        const selectResult = await executeQuery(selectQuery, { id });
+        if (selectResult.length === 0) {
+            return res.status(404).json({ error: 'Подключение не найдено' });
+        }
+
+        const connection_uid = selectResult[0].connection_uid;
+        const rdmPort = selectResult[0].rdm_port;
+
+        // Обновляем vpn_connections
+        const updateVpnQuery = `
             UPDATE vpn_connections
             SET connection_name = @connection_name,
                 protocol_type = @protocol_type,
                 vpn_server_address = @vpn_server_address,
                 username = @username,
                 password = @password,
-                connection_number = @connection_number
-            OUTPUT INSERTED.*
+                secret_key = @secret_key,
+                certificate = @certificate,
+                company_name = @company_name,
+                rdp_server_address = @rdp_server_address,
+                rdp_domain = @rdp_domain,
+                rdp_username = @rdp_username,
+                rdp_password = @rdp_password
             WHERE id = @id
         `;
-
         const params = {
-            id: parseInt(id),
-            connection_name,
-            protocol_type,
-            vpn_server_address,
-            username,
-            password,
-            connection_number
+            id,
+            connection_name: connection_name || '',
+            protocol_type: protocol_type || 'pptp',
+            vpn_server_address: vpn_server_address || '',
+            username: username || '',
+            password: password || '',
+            secret_key: secret_key || null,
+            certificate: certificatePath,
+            company_name: company_name || '',
+            rdp_server_address: rdp_server_address || '',
+            rdp_domain: rdp_domain || '',
+            rdp_username: rdp_username || '',
+            rdp_password: rdp_password || ''
         };
+        console.log('SQL params:', params);
+        await executeQuery(updateVpnQuery, params);
 
-        const result = await executeQuery(query, params);
-        console.log('Connection updated successfully.');
+        // Обновляем GroupInfo
+        const updateGroupQuery = `
+            UPDATE GroupInfo
+            SET Name = @company_name,
+                Data = @Data,
+                ModifiedDate = @ModifiedDate,
+                ModifiedUserName = @ModifiedUserName,
+                ModifiedLoggedUserName = @ModifiedLoggedUserName
+            WHERE ID = @connection_uid
+        `;
+        await executeQuery(updateGroupQuery, {
+            connection_uid,
+            company_name,
+            Data: `<?xml version="1.0"?>
+<Group>
+  <Name>${company_name}</Name>
+  <Description>Description for group</Description>
+</Group>`,
+            ModifiedDate: new Date().toISOString(),
+            ModifiedUserName: req.user.username || 'root',
+            ModifiedLoggedUserName: req.user.username || 'root',
+        });
 
-        if (result.length === 0) {
-            return res.status(404).send('Connection not found');
-        }
+        // Обновляем Connections
+        const key = crypto.randomBytes(32);
+        const iv = crypto.randomBytes(16);
+        const encryptedRdpPassword = encrypt(rdp_password || '', key, iv);
+        const url = protocol_type !== 'none' ? `${process.env.SSH_HOST}:${rdmPort}` : rdp_server_address;
 
-        res.json(result[0]); // Вернуть обновленные данные
+        const updateConnectionsQuery = `
+            UPDATE Connections
+            SET Data = @Data,
+                GroupName = @GroupName,
+                Name = @Name,
+                UnsafePassword = @UnsafePassword,
+                MetaData = @MetaData,
+                ModifiedDate = @ModifiedDate,
+                ModifiedUsername = @ModifiedUsername,
+                ModifiedLoggedUserName = @ModifiedLoggedUserName
+            WHERE ID = @connection_uid
+        `;
+        await executeQuery(updateConnectionsQuery, {
+            connection_uid,
+            Data: `<?xml version="1.0"?>
+<Connection>
+  <Url>${url || ''}</Url>
+  <Group>${company_name}</Group>
+  <ID>${connection_uid}</ID>
+  <Name>${company_name} - ${rdp_username || ''}</Name>
+  <RDP>
+    <SafePassword>${encryptedRdpPassword}</SafePassword>
+    <UserName>${rdp_username || ''}</UserName>
+    <Domain>${rdp_domain || ''}</Domain>
+  </RDP>
+</Connection>`,
+            GroupName: company_name,
+            Name: `${company_name} - ${rdp_username || ''}`,
+            UnsafePassword: encryptedRdpPassword,
+            MetaData: `<?xml version="1.0"?>
+<RDMOConnectionMetaData>
+  <ConnectionType>RDPConfigured</ConnectionType>
+  <Group>${company_name}</Group>
+  <Host>${url || ''}</Host>
+  <Name>${connection_name}</Name>
+</RDMOConnectionMetaData>`,
+            ModifiedDate: new Date().toISOString(),
+            ModifiedUsername: req.user.username || 'root',
+            ModifiedLoggedUserName: req.user.username || 'root',
+        });
+
+        console.log(`User ${req.user.username} updated connection ID ${id}`);
+        res.json({ message: 'Подключение обновлено' });
     } catch (error) {
         console.error('Error updating connection:', error);
-        res.status(500).send('Server error');
+        ssh.dispose();
+        res.status(500).json({ error: error.message || 'Ошибка сервера' });
     }
 };
+
 // Удаление подключения
 exports.deleteConnection = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const query = `
+        // Получаем connection_uid перед удалением
+        const selectQuery = `
+            SELECT connection_uid
+            FROM vpn_connections
+            WHERE id = @id
+        `;
+        const selectParams = { id: parseInt(id) };
+        const connectionResult = await executeQuery(selectQuery, selectParams);
+
+        if (connectionResult.length === 0) {
+            return res.status(404).json({ error: 'Подключение не найдено' });
+        }
+
+        const connection_uid = connectionResult[0].connection_uid;
+
+        // Удаляем из vpn_connections
+        const deleteVpnQuery = `
             DELETE FROM vpn_connections
             OUTPUT DELETED.*
             WHERE id = @id
         `;
+        const deleteVpnParams = { id: parseInt(id) };
+        const vpnResult = await executeQuery(deleteVpnQuery, deleteVpnParams);
+        console.log('Подключение удалено из vpn_connections:', vpnResult);
 
-        const params = {
-            id: parseInt(id)
-        };
-
-        const result = await executeQuery(query, params);
-        console.log('Подключение удалено.');
-
-        if (result.length === 0) {
-            return res.status(404).send('Подключение не найдено');
+        if (!connection_uid) {
+            console.warn('connection_uid не найден, пропускаем удаление из GroupInfo и Connections');
+            return res.json({ message: 'Подключение удалено (без связанных данных)', deleted: vpnResult[0] });
         }
 
-        res.json({ message: 'Подключение удалено', deleted: result[0] });
+        // Удаляем из GroupInfo
+        const deleteGroupQuery = `
+            DELETE FROM GroupInfo
+            WHERE ID = @connection_uid
+        `;
+        await executeQuery(deleteGroupQuery, { connection_uid });
+        console.log('Запись удалена из GroupInfo');
+
+        // Удаляем из Connections
+        const deleteConnectionsQuery = `
+            DELETE FROM Connections
+            WHERE ID = @connection_uid
+        `;
+        await executeQuery(deleteConnectionsQuery, { connection_uid });
+        console.log('Запись удалена из Connections');
+
+        res.json({ message: 'Подключение и связанные данные удалены', deleted: vpnResult[0] });
     } catch (error) {
         console.error('Ошибка удаления:', error);
-        res.status(500).send('Server error');
+        res.status(500).json({ error: 'Ошибка сервера' });
     }
 }; 

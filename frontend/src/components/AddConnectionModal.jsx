@@ -60,9 +60,10 @@ const AddConnectionModal = ({ isOpen, onClose }) => {
         }
 
         try {
-            const response = await axios.post(`http://${process.env.REACT_APP_SERVER}:5000/api/vpn/add`, data, {
+            const response = await axios.post(`${process.env.REACT_APP_SERVER}/api/vpn/add`, data, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
                 },
             });
             console.log('Успешно:', response.data);

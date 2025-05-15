@@ -8,9 +8,19 @@ const userRoutes = require('./routes/users');
 const app = express();
 const { connectDb } = require('./db'); // Импортируем функцию подключения
 
-// Middleware
-app.use(cors());
+// Middleware 
+app.use(cors({
+    origin: 'http://10.10.5.148:3000',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+}));
 app.use(express.json());
+
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url} from ${req.headers.origin}`);
+    next();
+});
 
 // Routes
 app.use('/api/auth', authRoutes);

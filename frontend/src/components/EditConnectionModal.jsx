@@ -2,12 +2,11 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import styles from './styles/EditConnectionModal.module.css';
 
-const EditConnectionModal = ({ isOpen, onClose, connection }) => {
+const EditConnectionModal = ({ isOpen, onClose, connection, onUpdate }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [showRdpPassword, setShowRdpPassword] = useState(false);
     const [showL2tpPassword, setShowL2tpPassword] = useState(false);
     const [certificateFile, setCertificateFile] = useState(null);
-
     const [formData, setFormData] = useState({
         connection_name: '',
         protocol_type: 'pptp',
@@ -15,7 +14,6 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
         username: '',
         password: '',
         secret_key: '',
-        certificate: '',
         company_name: '',
         rdp_server_address: '',
         rdp_domain: '',
@@ -33,7 +31,6 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
                 username: connection.username || '',
                 password: connection.password || '',
                 secret_key: connection.secret_key || '',
-                certificate: connection.certificate || '',
                 company_name: connection.company_name || '',
                 rdp_server_address: connection.rdp_server_address || '',
                 rdp_domain: connection.rdp_domain || '',
@@ -41,21 +38,17 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
                 rdp_password: connection.rdp_password || '',
             });
         }
-    }, [isOpen, connection]);
 
-    // Блокировка прокрутки при открытии модалки
-    useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = '';
         }
 
-        // Очистка при размонтировании
         return () => {
             document.body.style.overflow = '';
         };
-    }, [isOpen]);
+    }, [isOpen, connection]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -72,73 +65,72 @@ const EditConnectionModal = ({ isOpen, onClose, connection }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        let certificatePath = formData.certificate;
-        if (certificateFile) {
-            const formDataCert = new FormData();
-            formDataCert.append('certificate', certificateFile);
-
-            try {
-                const response = await axios.post(
-                    `${process.env.REACT_APP_SERVER}/api/vpn/upload-certificate`,
-                    formDataCert,
-                    {
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                        },
-                    }
-                );
-                certificatePath = response.data.path;
-            } catch (error) {
-                console.error('Ошибка загрузки сертификата:', error);
-                alert('Ошибка загрузки сертификата');
-                return;
-            }
+        const token = localStorage.getItem('token');
+        console.log('Token:', token);
+        if (!token) {
+            alert('Пожалуйста, войдите в систему');
+            window.location.href = '/login';
+            return;
         }
 
-        const updatedFormData = {
-            ...formData,
-            certificate: certificatePath,
-        };
+        // Проверяем обязательные поля
+        if (!formData.connection_name) {
+            alert('Название подключения обязательно');
+            return;
+        }
+        if (!formData.company_name) {
+            alert('Название компании обязательно');
+            return;
+        }
+
+        const data = new FormData();
+        Object.keys(formData).forEach((key) => {
+            // Пропускаем undefined или null значения
+            if (formData[key] !== undefined && formData[key] !== null) {
+                data.append(key, formData[key]);
+            }
+        });
+
+        if (certificateFile && (formData.protocol_type === 'sstp' || formData.protocol_type === 'openvpn')) {
+            data.append('certificate', certificateFile);
+        }
+
+        // Логируем отправляемые данные
+        console.log('FormData to send:');
+        for (let [key, value] of data.entries()) {
+            console.log(`${key}: ${value}`);
+        }
 
         try {
-            await axios.put(
-                `${process.env.REACT_APP_SERVER}/api/vpn/update/${connection.id}`,
-                updatedFormData
-            );
-            alert('Подключение обновлено');
-            setFormData({
-                connection_name: '',
-                protocol_type: 'pptp',
-                vpn_server_address: '',
-                username: '',
-                password: '',
-                secret_key: '',
-                certificate: '',
-                company_name: '',
-                rdp_server_address: '',
-                rdp_domain: '',
-                rdp_username: '',
-                rdp_password: '',
+            const apiUrl = `${process.env.REACT_APP_SERVER}/api/vpn/update/${connection.id}`;
+            console.log('Sending request to:', apiUrl);
+            console.log('Authorization header:', `Bearer ${token}`);
+            const response = await axios.put(apiUrl, data, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${token}`,
+                },
             });
-            setCertificateFile(null);
+            console.log('Успешно:', response.data);
+            alert('Подключение обновлено');
+            onUpdate();
             onClose();
         } catch (error) {
             console.error('Ошибка обновления:', error);
-            alert('Ошибка обновления');
-        }
-    };
-
-    // Закрытие модалки при клике вне окна
-    const handleOverlayClick = (e) => {
-        if (e.target.className.includes(styles.overlay)) {
-            onClose();
+            if (error.response?.status === 401) {
+                alert('Сессия истекла. Пожалуйста, войдите заново.');
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            } else {
+                alert('Ошибка при обновлении: ' + error.message);
+            }
         }
     };
 
     if (!isOpen) return null;
 
     return (
-        <div className={styles.overlay} onClick={handleOverlayClick}>
+        <div className={styles.overlay}>
             <div className={styles.modal}>
                 <h2>Редактирование подключения</h2>
                 <form onSubmit={handleSubmit} className={styles.form}>

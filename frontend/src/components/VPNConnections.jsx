@@ -14,20 +14,22 @@ const VPNConnections = () => {
     const [selectedProtocols, setSelectedProtocols] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
 
+    const fetchConnections = async () => {
+        try {
+            const response = await axios.get(`${process.env.REACT_APP_SERVER}/api/vpn/list`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+            });
+            setConnections(response.data);
+            setLoading(false);
+        } catch (error) {
+            console.error('Ошибка загрузки подключений:', error);
+            setError('Не могу найти подключения');
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchConnections = async () => {
-            try {
-                const response = await axios.get(`${process.env.REACT_APP_SERVER}/api/vpn/list`, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-                });
-                setConnections(response.data);
-                setLoading(false);
-            } catch (error) {
-                console.error('Ошибка загрузки подключений:', error);
-                setError('Не могу найти подключения');
-                setLoading(false);
-            }
-        };
+        
         fetchConnections();
     }, []);
 
@@ -49,6 +51,12 @@ const VPNConnections = () => {
                 alert('Ошибка удаления: ' + (error.response?.data?.error || 'Неизвестная ошибка'));
             }
         }
+    };
+
+    // Функция для обновления списка подключений после редактирования
+    const handleUpdate = () => {
+        fetchConnections(); // Повторно загружаем список подключений
+        setIsEditModalOpen(false); // Закрываем модальное окно
     };
 
     const handleProtocolChange = (protocol) => {
@@ -151,6 +159,7 @@ const VPNConnections = () => {
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
                 connection={selectedConnection}
+                onUpdate={handleUpdate}
             />
         </div>
     );
