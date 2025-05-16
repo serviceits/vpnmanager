@@ -1,0 +1,140 @@
+.container {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+h3 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.formRow {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+label {
+    font-weight: bold;
+    color: #444;
+}
+
+.select {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    height: 40px;
+}
+
+.textareaWrapper {
+    position: relative;
+}
+
+.textarea {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+    padding-right: 40px; /* Пространство для иконки */
+    box-sizing: border-box;
+    resize: none; /* Отключаем ручное изменение размера */
+    overflow: hidden; /* Убираем скролл */
+}
+
+.infoIcon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+    color: #666;
+}
+
+.tooltip {
+    display: none;
+    position: absolute;
+    top: 30px;
+    right: 0;
+    background-color: #333;
+    color: #fff;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 10;
+    width: 200px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.infoIcon:hover .tooltip {
+    display: block;
+}
+
+.tooltip p {
+    margin: 0 0 5px;
+}
+
+.tooltip ul {
+    margin: 0;
+    padding-left: 15px;
+}
+
+.tooltip li {
+    margin-bottom: 5px;
+}
+
+.tooltip code {
+    background-color: #444;
+    padding: 2px 4px;
+    border-radius: 2px;
+}
+
+.preview {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    white-space: pre-wrap;
+    overflow: hidden; /* Убираем скролл */
+}
+
+.formActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.button:hover {
+    background-color: #0056b3;
+}
+
+.status {
+    margin-top: 10px;
+    text-align: center;
+    color: #d9534f;
+}
+
+.status.success {
+    color: #5cb85c;
+}
