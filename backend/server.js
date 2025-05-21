@@ -5,8 +5,9 @@ const authRoutes = require('./routes/auth');
 const sshRoutes = require('./routes/ssh');
 const vpnRoutes = require('./routes/vpn');  
 const userRoutes = require('./routes/users');
+const bitrixRoutes = require('./routes/bitrix');
 const app = express();
-const { connectDb } = require('./db'); // Импортируем функцию подключения
+const { connectDb,connectDbMySQL } = require('./db'); // Импортируем функцию подключения
 
 // Middleware 
 app.use(cors({
@@ -27,8 +28,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/ssh', sshRoutes);
 app.use('/api/vpn', vpnRoutes); 
 app.use('/api/users', userRoutes);
+app.use('/api/bitrix', bitrixRoutes); 
 // Подключение к базе данных
 connectDb();
+connectDbMySQL();
 
 // Start server
 const PORT = process.env.PORT || 5000;

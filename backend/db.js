@@ -1,5 +1,16 @@
 const sql = require('mssql');
 require('dotenv').config();
+const mysql = require('mysql2/promise');
+
+const poolmysql = mysql.createPool({
+    host: '10.10.5.53',
+    user: 'Neko',
+    password: '3N9amNKAIz04',
+    database: 'bitrixai',
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+});
 
 // Конфигурация подключения к MSSQL
 const dbConfig = {
@@ -28,11 +39,21 @@ const connectDb = async () => {
         console.log('Connected to MSSQL database');
     } catch (error) {
         console.error('Failed to connect to MSSQL database:', error);
-        process.exit(1); // Выход из приложения при ошибке подключения
+        process.exit(1);
     }
 };
 
-// Функция для выполнения запросов
+const connectDbMySQL = async () => {
+    try {
+        await poolmysql.getConnection();
+        console.log('Connected to MySQL database');
+    } catch (error) {
+        console.error('Error connecting to MySQL:', error);
+        process.exit(1);
+    }
+};
+
+// Функция для выполнения запросов к MSSQL
 const executeQuery = async (query, params = {}) => {
     try {
         const request = pool.request();
@@ -48,7 +69,7 @@ const executeQuery = async (query, params = {}) => {
             } else if (key === 'data' && typeof params[key] === 'string') {
                 request.input(key, sql.NVarChar(sql.MAX), params[key]);
             } else if (key === 'Image' && params[key] !== null) {
-                request.input(key, sql.VarBinary(sql.MAX), params[key])
+                request.input(key, sql.VarBinary(sql.MAX), params[key]);
             } else {
                 throw new Error(`Invalid data type for parameter ${key}: ${typeof params[key]}`);
             }
@@ -62,4 +83,4 @@ const executeQuery = async (query, params = {}) => {
     }
 };
 
-module.exports = { connectDb, executeQuery };
+module.exports = { poolmysql, connectDb, connectDbMySQL, executeQuery };

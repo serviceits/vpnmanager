@@ -25,17 +25,111 @@ h3 {
     gap: 5px;
 }
 
+.checkboxRow {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
 label {
     font-weight: bold;
     color: #444;
 }
 
-.select {
+.multiselect {
+    position: relative;
+    width: 100%;
+}
+
+.selectedOptions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    min-height: 40px;
+    background-color: #fff;
+    align-items: center;
+    cursor: pointer;
+}
+
+.selectedOption {
+    display: flex;
+    align-items: center;
+    background-color: #28a745;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 12px;
     font-size: 14px;
-    height: 40px;
+}
+
+.removeButton {
+    background: none;
+    border: none;
+    color: #fff;
+    margin-left: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.placeholder {
+    color: #999;
+    font-size: 14px;
+}
+
+.searchContainer {
+    position: relative;
+    flex-grow: 1;
+}
+
+.searchIcon {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    color: #666;
+}
+
+.searchInput {
+    padding: 5px 5px 5px 30px;
+    border: none;
+    font-size: 14px;
+    width: 100%;
+}
+
+.searchInput:focus {
+    outline: none;
+}
+
+.dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dropdownItem {
+    padding: 5px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.dropdownItem:hover {
+    background-color: #f0f0f0;
+}
+
+.dropdownItem input {
+    margin: 0;
 }
 
 .textareaWrapper {
@@ -48,10 +142,10 @@ label {
     border-radius: 4px;
     font-size: 14px;
     width: 100%;
-    padding-right: 40px; /* Пространство для иконки */
+    padding-right: 40px;
     box-sizing: border-box;
-    resize: none; /* Отключаем ручное изменение размера */
-    overflow: hidden; /* Убираем скролл */
+    resize: none;
+    overflow: hidden;
 }
 
 .infoIcon {
@@ -73,7 +167,7 @@ label {
     border-radius: 4px;
     font-size: 12px;
     z-index: 10;
-    width: 200px;
+    width: 250px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
@@ -106,7 +200,7 @@ label {
     border-radius: 4px;
     background-color: #f9f9f9;
     white-space: pre-wrap;
-    overflow: hidden; /* Убираем скролл */
+    overflow: hidden;
 }
 
 .formActions {
@@ -132,7 +226,7 @@ label {
 .status {
     margin-top: 10px;
     text-align: center;
-    color: #d9534f;
+    color: #5cb85c;
 }
 
 .status.success {
