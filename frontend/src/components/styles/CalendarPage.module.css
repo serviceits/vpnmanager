@@ -1,0 +1,323 @@
+/* CalendarPage.module.css */
+.container {
+    padding: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+}
+
+h3 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 25px;
+    font-size: 24px;
+}
+
+.formRow {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+label {
+    font-weight: 600;
+    color: #34495e;
+    font-size: 16px;
+}
+
+.multiselect {
+    position: relative;
+    width: 100%;
+}
+
+.selectedOptions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+    border: 2px solid #ecf0f1;
+    border-radius: 8px;
+    min-height: 50px;
+    background-color: #fff;
+    align-items: center;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+}
+
+.selectedOptions:hover {
+    border-color: #3498db;
+}
+
+.selectedOption {
+    display: flex;
+    align-items: center;
+    background-color: #3498db;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+.selectedOption:hover {
+    background-color: #2980b9;
+}
+
+.removeButton {
+    background: none;
+    border: none;
+    color: #fff;
+    margin-left: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: color 0.3s ease;
+}
+
+.removeButton:hover {
+    color: #e74c3c;
+}
+
+.placeholder {
+    color: #7f8c8d;
+    font-size: 14px;
+}
+
+.searchContainer {
+    position: relative;
+    flex-grow: 1;
+}
+
+.searchIcon {
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    color: #7f8c8d;
+}
+
+.searchInput {
+    padding: 8px 8px 8px 40px;
+    border: none;
+    font-size: 14px;
+    width: 100%;
+    background-color: #ecf0f1;
+    border-radius: 4px;
+}
+
+.searchInput:focus {
+    outline: none;
+    background-color: #fff;
+}
+
+.dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    border: 2px solid #ecf0f1;
+    border-radius: 8px;
+    background-color: #fff;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 10;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    margin-top: 4px;
+}
+
+.dropdownItem {
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+.dropdownItem:hover {
+    background-color: #ecf0f1;
+}
+
+.dropdownItem input {
+    margin: 0;
+}
+
+.calendarTableContainer {
+    overflow-x: auto;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    border: 2px solid #ecf0f1;
+}
+
+.calendarTable {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #fff;
+}
+
+.calendarTable th,
+.calendarTable td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #ecf0f1;
+    text-align: left;
+    font-size: 14px;
+}
+
+.calendarTable th {
+    background-color: #3498db;
+    color: #fff;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.calendarTable tr:hover {
+    background-color: #f9f9f9;
+}
+
+.addEventForm {
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    border: 2px solid #ecf0f1;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.input,
+.select,
+.textarea {
+    padding: 10px;
+    border: 2px solid #ecf0f1;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #2c3e50;
+    background-color: #fff;
+    transition: border-color 0.3s ease;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+.customDatePicker {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #ecf0f1;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #2c3e50;
+    background-color: #fff;
+}
+
+.customDatePicker:focus-within {
+    border-color: #3498db;
+}
+
+.textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.submitButton {
+    padding: 12px 24px;
+    background-color: #2ecc71;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+}
+
+.submitButton:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+}
+
+.submitButton:hover:not(:disabled) {
+    background-color: #27ae60;
+}
+
+.loading {
+    text-align: center;
+    color: #7f8c8d;
+    font-size: 16px;
+}
+
+.noEvents {
+    text-align: center;
+    color: #7f8c8d;
+    font-size: 16px;
+    padding: 20px;
+}
+
+.error {
+    color: #e74c3c;
+    text-align: center;
+    font-size: 16px;
+    padding: 10px;
+    background-color: #ffebee;
+    border-radius: 8px;
+}
+
+.statusConfirmed {
+    color: #2ecc71;
+    font-weight: 600;
+}
+
+.statusDeclined {
+    color: #e74c3c;
+    font-weight: 600;
+}
+
+.statusPending {
+    color: #f1c40f;
+    font-weight: 600;
+}
+
+.statusHost {
+    color: #3498db;
+    font-weight: 600;
+}
+
+.tooltip {
+    background-color: #2c3e50;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    max-width: 250px;
+    z-index: 20;
+}
+
+@media (max-width: 600px) {
+    .calendarTable th,
+    .calendarTable td {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+
+    .input,
+    .select,
+    .textarea,
+    .customDatePicker {
+        font-size: 12px;
+    }
+
+    .submitButton {
+        font-size: 14px;
+        padding: 10px 20px;
+    }
+}

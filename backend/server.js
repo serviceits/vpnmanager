@@ -6,6 +6,7 @@ const sshRoutes = require('./routes/ssh');
 const vpnRoutes = require('./routes/vpn');  
 const userRoutes = require('./routes/users');
 const bitrixRoutes = require('./routes/bitrix');
+const calendarRoutes = require('./routes/calendar');
 const app = express();
 const { connectDb,connectDbMySQL } = require('./db'); // Импортируем функцию подключения
 
@@ -29,6 +30,7 @@ app.use('/api/ssh', sshRoutes);
 app.use('/api/vpn', vpnRoutes); 
 app.use('/api/users', userRoutes);
 app.use('/api/bitrix', bitrixRoutes); 
+app.use('/api/calendar', calendarRoutes);
 // Подключение к базе данных
 connectDb();
 connectDbMySQL();

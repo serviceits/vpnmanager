@@ -32,7 +32,7 @@ exports.getBitrixUsers = async (req, res) => {
             for (const user of usersList) {
                 // Сохранение пользователя в таблицу users
                 await poolmysql.query(
-                    `INSERT INTO users (id, first_name, last_name, middle_name, position, department, last_login, date_register) 
+                    `INSERT INTO users_bitrix (id, first_name, last_name, middle_name, position, department, last_login, date_register) 
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?) 
                      ON DUPLICATE KEY UPDATE 
                      first_name = VALUES(first_name), 

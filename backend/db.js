@@ -3,10 +3,10 @@ require('dotenv').config();
 const mysql = require('mysql2/promise');
 
 const poolmysql = mysql.createPool({
-    host: '10.10.5.53',
-    user: 'Neko',
-    password: '3N9amNKAIz04',
-    database: 'bitrixai',
+    host: process.env.MYSQL_HOST,
+    user: process.env.MYSQL_USER,
+    password: process.env.MYSQL_PASSWORD,
+    database: process.env.MYSQL_NAME,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0

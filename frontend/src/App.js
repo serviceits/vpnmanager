@@ -8,6 +8,7 @@ import PrivateRoute from './components/PrivateRoute';
 import { AuthProvider } from './context/AuthContext';
 import UploadTestPage from './components/UploadTestPage';
 import SendMessagePage from './components/SendMessagePage';
+import CalendarPage from './components/CalendarPage';
 
 function App() {
     return (
@@ -22,6 +23,7 @@ function App() {
                         element={<PrivateRoute><UserManagement /></PrivateRoute>}
                     />
                     <Route path="/send-message" element={<SendMessagePage />} />
+                    <Route path="/calendar" element={<CalendarPage />} />
                     <Route path="/upload-test" element={<UploadTestPage />} />
                 </Routes>
             </AuthProvider>
